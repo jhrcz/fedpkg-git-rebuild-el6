@@ -1,6 +1,6 @@
-# Makefile for source rpm: git-core
-# $Id$
-NAME := git-core
+# Makefile for source rpm: git
+# $Id: Makefile,v 1.1 2005/08/30 00:36:41 jwboyer Exp $
+NAME := git
 SPECFILE = $(firstword $(wildcard *.spec))
 
 define find-makefile-common
