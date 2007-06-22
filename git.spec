@@ -1,13 +1,13 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.5.2.1
-Release: 	1%{?dist}
+Release: 	2%{?dist}
 Summary:  	Git core and tools
 License: 	GPL
 Group: 		Development/Tools
 URL: 		http://kernel.org/pub/software/scm/git/
 Source: 	http://kernel.org/pub/software/scm/git/%{name}-%{version}.tar.gz
-BuildRequires:	perl-devel, zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel  %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
+BuildRequires:	perl, zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel  %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:	git-core, git-svn, git-cvs, git-arch, git-email, gitk, git-gui, perl-Git
 
@@ -76,7 +76,6 @@ Summary:        Perl interface to Git
 Group:          Development/Libraries
 Requires:       git-core = %{version}-%{release}
 Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
-BuildRequires:  perl(Error)
 
 %description -n perl-Git
 Perl interface to Git
@@ -170,6 +169,9 @@ rm -rf $RPM_BUILD_ROOT
 %{!?_without_docs: %doc Documentation/technical}
 
 %changelog
+* Fri Jun 22 2007 James Bowes <jbowes@redhat.com> 1.5.2.1-2
+- Remove buildreq on perl(Error)  and perl-devel for el5.
+
 * Fri Jun 08 2007 James Bowes <jbowes@redhat.com> 1.5.2.1-1
 - git-1.5.2.1
 
