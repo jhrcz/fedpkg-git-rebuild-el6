@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.5.2.1
-Release: 	2%{?dist}
+Release: 	3%{?dist}
 Summary:  	Git core and tools
 License: 	GPL
 Group: 		Development/Tools
@@ -9,7 +9,7 @@ URL: 		http://kernel.org/pub/software/scm/git/
 Source: 	http://kernel.org/pub/software/scm/git/%{name}-%{version}.tar.gz
 BuildRequires:	perl, zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel  %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Requires:	git-core, git-svn, git-cvs, git-arch, git-email, gitk, git-gui, perl-Git
+Requires:	git-core, git-svn, git-cvs, git-email, gitk, git-gui, perl-Git
 
 %description
 Git is a fast, scalable, distributed revision control system with an
@@ -42,13 +42,6 @@ Group:          Development/Tools
 Requires:       git-core = %{version}-%{release}, cvs, cvsps
 %description cvs
 Git tools for importing CVS repositories.
-
-%package arch
-Summary:        Git tools for importing Arch repositories
-Group:          Development/Tools
-Requires:       git-core = %{version}-%{release}, tla
-%description arch
-Git tools for importing Arch repositories.
 
 %package email
 Summary:        Git tools for sending email
@@ -98,10 +91,12 @@ find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -type f -name '*.bs' -empty -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -type f -name perllocal.pod -exec rm -f {} ';'
 
-(find $RPM_BUILD_ROOT%{_bindir} -type f | grep -vE "archimport|svn|cvs|email|gitk|git-gui|git-citool" | sed -e s@^$RPM_BUILD_ROOT@@)               > bin-man-doc-files
+find $RPM_BUILD_ROOT -type f -name 'git-archimport*' -exec rm -f {} ';'
+
+(find $RPM_BUILD_ROOT%{_bindir} -type f | grep -vE "svn|cvs|email|gitk|git-gui|git-citool" | sed -e s@^$RPM_BUILD_ROOT@@)               > bin-man-doc-files
 (find $RPM_BUILD_ROOT%{perl_vendorlib} -type f | sed -e s@^$RPM_BUILD_ROOT@@) >> perl-files
 %if %{!?_without_docs:1}0
-(find $RPM_BUILD_ROOT%{_mandir} $RPM_BUILD_ROOT/Documentation -type f | grep -vE "archimport|svn|git-cvs|email|gitk|git-gui|git-citool" | sed -e s@^$RPM_BUILD_ROOT@@ -e 's/$/*/' ) >> bin-man-doc-files
+(find $RPM_BUILD_ROOT%{_mandir} $RPM_BUILD_ROOT/Documentation -type f | grep -vE "svn|git-cvs|email|gitk|git-gui|git-citool" | sed -e s@^$RPM_BUILD_ROOT@@ -e 's/$/*/' ) >> bin-man-doc-files
 %else
 rm -rf $RPM_BUILD_ROOT%{_mandir}
 %endif
@@ -125,13 +120,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/*cvs*
 %{!?_without_docs: %{_mandir}/man1/*cvs*.1*}
 %{!?_without_docs: %doc Documentation/*git-cvs*.html }
-
-%files arch
-%defattr(-,root,root)
-%doc Documentation/git-archimport.txt
-%{_bindir}/git-archimport
-%{!?_without_docs: %{_mandir}/man1/git-archimport.1*}
-%{!?_without_docs: %doc Documentation/git-archimport.html }
 
 %files email
 %defattr(-,root,root)
@@ -169,6 +157,9 @@ rm -rf $RPM_BUILD_ROOT
 %{!?_without_docs: %doc Documentation/technical}
 
 %changelog
+* Mon Jul 23 2007 James Bowes <jbowes@redhat.com> 1.5.2.1-3
+- Remove the git-arch subpackage (tla is not in epel).
+
 * Fri Jun 22 2007 James Bowes <jbowes@redhat.com> 1.5.2.1-2
 - Remove buildreq on perl(Error)  and perl-devel for el5.
 
