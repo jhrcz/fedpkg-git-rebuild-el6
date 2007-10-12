@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
-Version: 	1.5.2.1
-Release: 	3%{?dist}
+Version: 	1.5.3.3
+Release: 	1%{?dist}
 Summary:  	Git core and tools
 License: 	GPL
 Group: 		Development/Tools
@@ -133,11 +133,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/git-gui
 %{_bindir}/git-citool
 %{_datadir}/git-gui/
-# Not Yet...
-# %{!?_without_docs: %{_mandir}/man1/git-gui.1}
-# %{!?_without_docs: %doc Documentation/git-gui.html}
-# %{!?_without_docs: %{_mandir}/man1/git-citool.1}
-# %{!?_without_docs: %doc Documentation/git-citool.html}
+%{!?_without_docs: %{_mandir}/man1/git-gui.1*}
+%{!?_without_docs: %doc Documentation/git-gui.html}
+%{!?_without_docs: %{_mandir}/man1/git-citool.1*}
+%{!?_without_docs: %doc Documentation/git-citool.html}
 
 %files -n gitk
 %defattr(-,root,root)
@@ -157,6 +156,9 @@ rm -rf $RPM_BUILD_ROOT
 %{!?_without_docs: %doc Documentation/technical}
 
 %changelog
+* Fri Oct 12 2007 James Bowes <jbowes@redhat.com> 1.5.3.3-1
+- git-1.5.3.3
+
 * Mon Jul 23 2007 James Bowes <jbowes@redhat.com> 1.5.2.1-3
 - Remove the git-arch subpackage (tla is not in epel).
 
