@@ -1,12 +1,15 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
-Version: 	1.5.3.3
+Version: 	1.5.3.6
 Release: 	1%{?dist}
 Summary:  	Git core and tools
 License: 	GPL
 Group: 		Development/Tools
 URL: 		http://kernel.org/pub/software/scm/git/
 Source: 	http://kernel.org/pub/software/scm/git/%{name}-%{version}.tar.gz
+Source1:	git.xinetd
+Source2:	git.conf.httpd
+Patch0:		git-1.5-gitweb-home-link.patch
 BuildRequires:	perl, zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel  %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:	git-core, git-svn, git-cvs, git-email, gitk, git-gui, perl-Git
@@ -28,6 +31,20 @@ unusually rich command set that provides both high-level operations
 and full access to internals.
 
 These are the core tools with minimal dependencies.
+
+%package daemon
+Summary:	Git protocol daemon
+Group:		Development/Tools
+Requires:	git-core = %{version}-%{release}
+%description daemon
+The git dæmon for supporting git:// access to git repositories
+
+%package -n gitweb
+Summary:	Simple web interface to git repositories
+Group:		Development/Tools
+Requires:	git-core = %{version}-%{release}
+%description -n gitweb
+Simple web interface to track changes in git repositories
 
 %package svn
 Summary:        Git tools for importing Subversion repositories
@@ -75,6 +92,7 @@ Perl interface to Git
 
 %prep
 %setup -q
+%patch0 -p1
 
 %build
 make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" \
@@ -87,6 +105,15 @@ make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" DESTDIR=$RPM_BUILD_ROOT \
      prefix=%{_prefix} mandir=%{_mandir} \
      ETC_GITCONFIG=/etc/gitconfig \
      INSTALLDIRS=vendor install %{!?_without_docs: install-doc}
+
+mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/xinetd.d
+install -m 644 %SOURCE1 $RPM_BUILD_ROOT/%{_sysconfdir}/xinetd.d/git
+mkdir -p $RPM_BUILD_ROOT/var/www/git
+install -m 644 -t $RPM_BUILD_ROOT/var/www/git gitweb/*.png gitweb/*.css
+install -m 755 -t $RPM_BUILD_ROOT/var/www/git gitweb/gitweb.cgi
+mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/httpd/conf.d
+install -m 0644 %SOURCE2 $RPM_BUILD_ROOT/%{_sysconfdir}/httpd/conf.d/git.conf
+
 find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -type f -name '*.bs' -empty -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -type f -name perllocal.pod -exec rm -f {} ';'
@@ -100,6 +127,7 @@ find $RPM_BUILD_ROOT -type f -name 'git-archimport*' -exec rm -f {} ';'
 %else
 rm -rf $RPM_BUILD_ROOT%{_mandir}
 %endif
+mkdir -p $RPM_BUILD_ROOT/srv/git
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -152,10 +180,26 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %{_datadir}/git-core/
 %doc README COPYING Documentation/*.txt
+
+%files daemon
+%defattr(-,root,root)
+%{_bindir}/git-daemon
+%config(noreplace)%{_sysconfdir}/xinetd.d/git
+/srv/git
+
+%files -n gitweb
+%defattr(-,root,root)
+/var/www/git/
+%{_sysconfdir}/httpd/conf.d/git.conf
 %{!?_without_docs: %doc Documentation/*.html Documentation/howto}
 %{!?_without_docs: %doc Documentation/technical}
 
+
 %changelog
+* Wed Dec 05 2007 Josh Boyer <jwboyer@gmail.com> 1.5.3.6-1
+- git-1.5.3.6
+- Add git-deamon and git-web subpackages
+
 * Fri Oct 12 2007 James Bowes <jbowes@redhat.com> 1.5.3.3-1
 - git-1.5.3.3
 
