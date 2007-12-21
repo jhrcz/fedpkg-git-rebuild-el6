@@ -108,8 +108,8 @@ make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" DESTDIR=$RPM_BUILD_ROOT \
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/xinetd.d
 install -m 644 %SOURCE1 $RPM_BUILD_ROOT/%{_sysconfdir}/xinetd.d/git
 mkdir -p $RPM_BUILD_ROOT/var/www/git
-install -m 644 -t $RPM_BUILD_ROOT/var/www/git gitweb/*.png gitweb/*.css
-install -m 755 -t $RPM_BUILD_ROOT/var/www/git gitweb/gitweb.cgi
+install -m 644 gitweb/*.png gitweb/*.css $RPM_BUILD_ROOT/var/www/git
+install -m 755 gitweb/gitweb.cgi $RPM_BUILD_ROOT/var/www/git
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/httpd/conf.d
 install -m 0644 %SOURCE2 $RPM_BUILD_ROOT/%{_sysconfdir}/httpd/conf.d/git.conf
 
