@@ -1,12 +1,15 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
-Version: 	1.5.2.1
-Release: 	3%{?dist}
+Version: 	1.5.3.6
+Release: 	1%{?dist}
 Summary:  	Git core and tools
 License: 	GPL
 Group: 		Development/Tools
 URL: 		http://kernel.org/pub/software/scm/git/
 Source: 	http://kernel.org/pub/software/scm/git/%{name}-%{version}.tar.gz
+Source1:	git.xinetd
+Source2:	git.conf.httpd
+Patch0:		git-1.5-gitweb-home-link.patch
 BuildRequires:	perl, zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel  %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:	git-core, git-svn, git-cvs, git-email, gitk, git-gui, perl-Git
@@ -28,6 +31,20 @@ unusually rich command set that provides both high-level operations
 and full access to internals.
 
 These are the core tools with minimal dependencies.
+
+%package daemon
+Summary:	Git protocol daemon
+Group:		Development/Tools
+Requires:	git-core = %{version}-%{release}
+%description daemon
+The git dæmon for supporting git:// access to git repositories
+
+%package -n gitweb
+Summary:	Simple web interface to git repositories
+Group:		Development/Tools
+Requires:	git-core = %{version}-%{release}
+%description -n gitweb
+Simple web interface to track changes in git repositories
 
 %package svn
 Summary:        Git tools for importing Subversion repositories
@@ -75,6 +92,7 @@ Perl interface to Git
 
 %prep
 %setup -q
+%patch0 -p1
 
 %build
 make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" \
@@ -87,6 +105,14 @@ make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" DESTDIR=$RPM_BUILD_ROOT \
      prefix=%{_prefix} mandir=%{_mandir} \
      ETC_GITCONFIG=/etc/gitconfig \
      INSTALLDIRS=vendor install %{!?_without_docs: install-doc}
+mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/xinetd.d
+install -m 644 %SOURCE1 $RPM_BUILD_ROOT/%{_sysconfdir}/xinetd.d/git
+mkdir -p $RPM_BUILD_ROOT/var/www/git
+install -m 644 -t $RPM_BUILD_ROOT/var/www/git gitweb/*.png gitweb/*.css
+install -m 755 -t $RPM_BUILD_ROOT/var/www/git gitweb/gitweb.cgi
+mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/httpd/conf.d
+install -m 0644 %SOURCE2 $RPM_BUILD_ROOT/%{_sysconfdir}/httpd/conf.d/git.conf
+
 find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -type f -name '*.bs' -empty -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -type f -name perllocal.pod -exec rm -f {} ';'
@@ -97,10 +123,11 @@ find $RPM_BUILD_ROOT -type f -name 'git-archimport*' -exec rm -f {} ';'
 (find $RPM_BUILD_ROOT%{_bindir} -type f | grep -vE "svn|cvs|email|gitk|git-gui|git-citool" | sed -e s@^$RPM_BUILD_ROOT@@)               > bin-man-doc-files
 (find $RPM_BUILD_ROOT%{perl_vendorlib} -type f | sed -e s@^$RPM_BUILD_ROOT@@) >> perl-files
 %if %{!?_without_docs:1}0
-(find $RPM_BUILD_ROOT%{_mandir} $RPM_BUILD_ROOT/Documentation -type f | grep -vE "archimport|svn|git-cvs|email|gitk|git-gui|git-citool" | sed -e s@^$RPM_BUILD_ROOT@@ -e 's/$/*/' ) >> bin-man-doc-files
+(find $RPM_BUILD_ROOT%{_mandir} $RPM_BUILD_ROOT/Documentation -type f | grep -vE "svn|git-cvs|email|gitk|git-gui|git-citool" | sed -e s@^$RPM_BUILD_ROOT@@ -e 's/$/*/' ) >> bin-man-doc-files
 %else
 rm -rf $RPM_BUILD_ROOT%{_mandir}
 %endif
+mkdir -p $RPM_BUILD_ROOT/srv/git
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -134,11 +161,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/git-gui
 %{_bindir}/git-citool
 %{_datadir}/git-gui/
-# Not Yet...
-# %{!?_without_docs: %{_mandir}/man1/git-gui.1}
-# %{!?_without_docs: %doc Documentation/git-gui.html}
-# %{!?_without_docs: %{_mandir}/man1/git-citool.1}
-# %{!?_without_docs: %doc Documentation/git-citool.html}
+%{!?_without_docs: %{_mandir}/man1/git-gui.1*}
+%{!?_without_docs: %doc Documentation/git-gui.html}
+%{!?_without_docs: %{_mandir}/man1/git-citool.1*}
+%{!?_without_docs: %doc Documentation/git-citool.html}
 
 %files -n gitk
 %defattr(-,root,root)
@@ -154,10 +180,27 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %{_datadir}/git-core/
 %doc README COPYING Documentation/*.txt
+%files daemon
+%defattr(-,root,root)
+%{_bindir}/git-daemon
+%config(noreplace)%{_sysconfdir}/xinetd.d/git
+/srv/git
+
+%files -n gitweb
+%defattr(-,root,root)
+/var/www/git/
+%{_sysconfdir}/httpd/conf.d/git.conf
 %{!?_without_docs: %doc Documentation/*.html Documentation/howto}
 %{!?_without_docs: %doc Documentation/technical}
 
+
 %changelog
+* Wed Dec 05 2007 James Bowes <jbowes@redhat.com> 1.5.3.6-1
+- git-1.5.3.6 (Changes courtesy Josh Boyer)
+
+* Fri Oct 12 2007 James Bowes <jbowes@redhat.com> 1.5.3.3-1
+- git-1.5.3.3
+
 * Mon Jul 23 2007 James Bowes <jbowes@redhat.com> 1.5.2.1-3
 - Remove the git-arch subpackage (tla is not in epel).
 
