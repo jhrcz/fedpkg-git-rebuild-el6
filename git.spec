@@ -1,6 +1,6 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
-Version: 	1.5.3.7
+Version: 	1.5.3.8
 Release: 	1%{?dist}
 Summary:  	Git core and tools
 License: 	GPLv2
@@ -243,6 +243,9 @@ rm -rf $RPM_BUILD_ROOT
 %{!?_without_docs: %doc Documentation/technical}
 
 %changelog
+* Tue Jan 08 2008 James Bowes <jbowes@redhat.com> 1.5.3.8-1
+- git-1.5.3.8
+
 * Fri Dec 21 2007 James Bowes <jbowes@redhat.com> 1.5.3.7-1
 - git-1.5.3.7
 - Have git metapackage require explicit versions (bug 247214)
