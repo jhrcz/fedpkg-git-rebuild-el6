@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.5.4
-Release: 	1%{?dist}
+Release: 	2%{?dist}
 Summary:  	Git core and tools
 License: 	GPLv2
 Group: 		Development/Tools
@@ -213,6 +213,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc Documentation/*gitk*.txt
 %{_bindir}/*gitk*
+%{_datadir}/gitk
 %{!?_without_docs: %{_mandir}/man1/*gitk*.1*}
 %{!?_without_docs: %doc Documentation/*gitk*.html }
 
@@ -243,6 +244,9 @@ rm -rf $RPM_BUILD_ROOT
 %{!?_without_docs: %doc Documentation/technical}
 
 %changelog
+* Mon Feb 04 2008 James Bowes <jbowes@redhat.com> 1.5.4-2
+- Own datadir/gitk
+
 * Mon Feb 04 2008 James Bowes <jbowes@redhat.com> 1.5.4-1
 - git-1.5.4
 
