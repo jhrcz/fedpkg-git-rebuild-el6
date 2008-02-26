@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.5.4.3
-Release: 	1%{?dist}
+Release: 	2%{?dist}
 Summary:  	Git core and tools
 License: 	GPLv2
 Group: 		Development/Tools
@@ -239,11 +239,14 @@ rm -rf $RPM_BUILD_ROOT
 %files -n gitweb
 %defattr(-,root,root)
 /var/www/git/
-%{_sysconfdir}/httpd/conf.d/git.conf
+%config(noreplace)%{_sysconfdir}/httpd/conf.d/git.conf
 %{!?_without_docs: %doc Documentation/*.html Documentation/howto}
 %{!?_without_docs: %doc Documentation/technical}
 
 %changelog
+* Sun Feb 26 2008 Bernardo Innocenti <bernie@codewiz.org> 1.5.4.3-2
+- Do not silently overwrite /etc/httpd/conf.d/git.conf
+
 * Sun Feb 24 2008 James Bowes <jbowes@redhat.com> 1.5.4.3-1
 - git-1.5.4.3
 
