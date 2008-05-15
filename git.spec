@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.5.5.1
-Release: 	1%{?dist}
+Release: 	2%{?dist}
 Summary:  	Core git tools
 License: 	GPL
 Group: 		Development/Tools
@@ -34,7 +34,6 @@ Group:		Development/Tools
 Requires:	git = %{version}-%{release}
 Requires:	git-svn = %{version}-%{release}
 Requires:	git-cvs = %{version}-%{release}
-Requires:	git-arch = %{version}-%{release}
 Requires:	git-email = %{version}-%{release}
 Requires:	gitk = %{version}-%{release}
 Requires:	git-gui = %{version}-%{release}
@@ -245,6 +244,9 @@ rm -rf $RPM_BUILD_ROOT
 # No files for you!
 
 %changelog
+* Thu May 15 2008 James Bowes <jbowes@redhat.com> 1.5.5.1-2
+- Remove requires on git-arch
+
 * Wed May 14 2008 James Bowes <jbowes@redhat.com> 1.5.5.1-1
 - git-1.5.5.1
 
