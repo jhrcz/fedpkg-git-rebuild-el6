@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
-Version: 	1.5.5.1
-Release: 	1%{?dist}.1
+Version: 	1.5.5.2
+Release: 	1%{?dist}
 Summary:  	Core git tools
 License: 	GPLv2
 Group: 		Development/Tools
@@ -257,6 +257,9 @@ rm -rf $RPM_BUILD_ROOT
 # No files for you!
 
 %changelog
+* Mon May 26 2008 James Bowes <jbowes@redhat.com> 1.5.5.2-1
+- git-1.5.5.2
+
 * Fri May 23 2008 Dennis Gilmore <dennis@ausil.us> 1.5.5.1-1.1
 - minor rebuild for sparc
 
