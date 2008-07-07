@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.5.3.6
-Release: 	1%{?dist}
+Release: 	2%{?dist}
 Summary:  	Git core and tools
 License: 	GPL
 Group: 		Development/Tools
@@ -56,7 +56,7 @@ Git tools for importing Subversion repositories.
 %package cvs
 Summary:        Git tools for importing CVS repositories
 Group:          Development/Tools
-Requires:       git-core = %{version}-%{release}, cvs, cvsps
+Requires:       git-core = %{version}-%{release}, cvs
 %description cvs
 Git tools for importing CVS repositories.
 
@@ -195,6 +195,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jul 07 2008 Xavier Bachelot <xavier@bachelot.org> 1.5.3.6-2
+- Drop git-cvs requirement for cvsps, it is not available in EL-4.
+
 * Wed Dec 05 2007 James Bowes <jbowes@redhat.com> 1.5.3.6-1
 - git-1.5.3.6 (Changes courtesy Josh Boyer)
 
