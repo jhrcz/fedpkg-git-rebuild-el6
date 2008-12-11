@@ -1,6 +1,6 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
-Version: 	1.6.0.4
+Version: 	1.6.0.5
 Release: 	1%{?dist}
 Summary:  	Core git tools
 License: 	GPLv2
@@ -260,6 +260,9 @@ rm -rf $RPM_BUILD_ROOT
 # No files for you!
 
 %changelog
+* Thu Dec 11 2008 Josh Boyer <jboyer@gmail.com> 1.6.0.5-1
+- git-1.6.0.5
+
 * Mon Nov 17 2008 Seth Vidal <skvidal at fedoraproject.org>
 - switch from /srv/git to /var/lib/git-daemon for packaging rules compliance
 
