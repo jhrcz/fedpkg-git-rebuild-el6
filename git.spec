@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
-Version: 	1.5.5.1
-Release: 	2%{?dist}
+Version: 	1.5.5.6
+Release: 	1%{?dist}
 Summary:  	Core git tools
 License: 	GPL
 Group: 		Development/Tools
@@ -244,6 +244,9 @@ rm -rf $RPM_BUILD_ROOT
 # No files for you!
 
 %changelog
+* Sat Dec 20 2008 James Bowes <jbowes@redhat.com> 1.5.5.6-1
+- git-1.5.5.6
+
 * Thu May 15 2008 James Bowes <jbowes@redhat.com> 1.5.5.1-2
 - Remove requires on git-arch
 
