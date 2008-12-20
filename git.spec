@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.5.4.3
-Release: 	2%{?dist}
+Release: 	3%{?dist}
 Summary:  	Git core and tools
 License: 	GPLv2
 Group: 		Development/Tools
@@ -11,6 +11,7 @@ Source1:	git-init.el
 Source2:	git.xinetd
 Source3:	git.conf.httpd
 Patch0:		git-1.5-gitweb-home-link.patch
+Patch1:         0001-hotfix-1.5.456.X.txt
 BuildRequires:	zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel, emacs, gettext %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -122,6 +123,7 @@ Requires:      git-core = %{version}-%{release}, emacs-common
 %prep
 %setup -q
 %patch0 -p1
+%patch1 -p1
 
 %build
 make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" \
@@ -244,6 +246,10 @@ rm -rf $RPM_BUILD_ROOT
 %{!?_without_docs: %doc Documentation/technical}
 
 %changelog
+* Sat Dec 20 2008 Todd Zullinger <tmz@pobox.com> 1.5.4.3-3
+- Fix local privilege escalation bug in gitweb
+  (http://article.gmane.org/gmane.comp.version-control.git/103624)
+
 * Sun Feb 26 2008 Bernardo Innocenti <bernie@codewiz.org> 1.5.4.3-2
 - Do not silently overwrite /etc/httpd/conf.d/git.conf
 
