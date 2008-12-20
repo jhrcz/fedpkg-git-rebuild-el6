@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
-Version: 	1.5.3.6
-Release: 	2%{?dist}
+Version: 	1.5.4.7
+Release: 	1%{?dist}
 Summary:  	Git core and tools
 License: 	GPL
 Group: 		Development/Tools
@@ -10,7 +10,7 @@ Source: 	http://kernel.org/pub/software/scm/git/%{name}-%{version}.tar.gz
 Source1:	git.xinetd
 Source2:	git.conf.httpd
 Patch0:		git-1.5-gitweb-home-link.patch
-BuildRequires:	perl, zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel  %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
+BuildRequires:	perl, zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel, gettext %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:	git-core, git-svn, git-cvs, git-email, gitk, git-gui, perl-Git
 
@@ -170,6 +170,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc Documentation/*gitk*.txt
 %{_bindir}/*gitk*
+%{_datadir}/gitk
 %{!?_without_docs: %{_mandir}/man1/*gitk*.1*}
 %{!?_without_docs: %doc Documentation/*gitk*.html }
 
@@ -195,6 +196,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sat Dec 20 2008 James Bowes <jbowes@redhat.com> 1.5.4.7-1
+- Update to latest maintenence release.
+
 * Mon Jul 07 2008 Xavier Bachelot <xavier@bachelot.org> 1.5.3.6-2
 - Drop git-cvs requirement for cvsps, it is not available in EL-4.
 
