@@ -1,6 +1,6 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
-Version: 	1.5.6.5
+Version: 	1.5.6.6
 Release: 	1%{?dist}
 Summary:  	Core git tools
 License: 	GPLv2
@@ -90,6 +90,7 @@ Git tools for importing Arch repositories.
 Summary:        Git tools for sending email
 Group:          Development/Tools
 Requires:	git = %{version}-%{release}, perl-Git = %{version}-%{release}
+Requires:       perl(Net::SMTP::SSL)
 %description email
 Git tools for sending email.
 
@@ -97,6 +98,7 @@ Git tools for sending email.
 Summary:        Git GUI tool
 Group:          Development/Tools
 Requires:       git = %{version}-%{release}, tk >= 8.4
+Requires:       gitk = %{version}-%{release}
 %description gui
 Git GUI tool.
 
@@ -257,6 +259,12 @@ rm -rf $RPM_BUILD_ROOT
 # No files for you!
 
 %changelog
+* Sat Dec 20 2008 Todd Zullinger <tmz@pobox.com> 1.5.6.6-1
+- git-1.5.6.6
+- Fixes a local privilege escalation bug in gitweb
+- Make git-email require perl(Net::SMTP::SSL) (bug 443615)
+- Add gitk Requires to git-gui (bug 476308)
+
 * Tue Oct 22 2008 Josh Boyer <jwboyer@gmail.com> 1.5.6.5-1
 - git-1.5.6.5 (bug 458156)
 
