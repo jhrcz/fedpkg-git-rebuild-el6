@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.5.5.6
-Release: 	1%{?dist}
+Release: 	2%{?dist}
 Summary:  	Core git tools
 License: 	GPL
 Group: 		Development/Tools
@@ -11,6 +11,7 @@ Source1:	git-init.el
 Source2:	git.xinetd
 Source3:	git.conf.httpd
 Patch0:		git-1.5-gitweb-home-link.patch
+Patch1:         CVE-2008-5517.patch
 BuildRequires:	perl, zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel, emacs, gettext %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -120,6 +121,7 @@ Requires:      git = %{version}-%{release}, emacs-common
 %prep
 %setup -q
 %patch0 -p1
+%patch1 -p1 -b .CVE-2008-5517
 
 %build
 make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" \
@@ -244,6 +246,9 @@ rm -rf $RPM_BUILD_ROOT
 # No files for you!
 
 %changelog
+* Mon Jan 12 2009 Todd Zullinger <tmz@pobox.com> 1.5.5.6-2
+- Fix CVE-2008-5517, gitweb remote command injection
+
 * Sat Dec 20 2008 James Bowes <jbowes@redhat.com> 1.5.5.6-1
 - git-1.5.5.6
 
