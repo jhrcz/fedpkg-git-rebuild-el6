@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.5.4.7
-Release: 	1%{?dist}
+Release: 	2%{?dist}
 Summary:  	Git core and tools
 License: 	GPL
 Group: 		Development/Tools
@@ -10,6 +10,8 @@ Source: 	http://kernel.org/pub/software/scm/git/%{name}-%{version}.tar.gz
 Source1:	git.xinetd
 Source2:	git.conf.httpd
 Patch0:		git-1.5-gitweb-home-link.patch
+Patch1:		gitweb-CVE-2008-5516.patch
+Patch2:		gitweb-CVE-2008-5517.patch
 BuildRequires:	perl, zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel, gettext %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:	git-core, git-svn, git-cvs, git-email, gitk, git-gui, perl-Git
@@ -93,6 +95,8 @@ Perl interface to Git
 %prep
 %setup -q
 %patch0 -p1
+%patch1 -p1 -b .CVE-2008-5516
+%patch2 -p1 -b .CVE-2008-5517
 
 %build
 make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" \
@@ -196,6 +200,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jan 12 2009 Todd Zullinger <tmz@pobox.com> 1.5.4.7-2
+- Backport gitweb fixes for CVE-2008-5516 and CVE-2008-5517 (bug 479715)
+
 * Sat Dec 20 2008 James Bowes <jbowes@redhat.com> 1.5.4.7-1
 - Update to latest maintenence release.
 
