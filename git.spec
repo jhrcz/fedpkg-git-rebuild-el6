@@ -1,11 +1,11 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.6.0.6
-Release: 	1%{?dist}
+Release: 	2%{?dist}
 Summary:  	Core git tools
 License: 	GPLv2
 Group: 		Development/Tools
-URL: 		http://kernel.org/pub/software/scm/git/
+URL:		http://git-scm.com/
 Source: 	http://kernel.org/pub/software/scm/git/%{name}-%{version}.tar.bz2
 Source1:	git-init.el
 Source2:	git.xinetd
@@ -90,7 +90,7 @@ Git tools for importing Arch repositories.
 Summary:        Git tools for sending email
 Group:          Development/Tools
 Requires:	git = %{version}-%{release}, perl-Git = %{version}-%{release}
-Requires:   perl(Net::SMTP::SSL)
+Requires:       perl(Net::SMTP::SSL), perl(Authen::SASL)
 %description email
 Git tools for sending email.
 
@@ -131,20 +131,24 @@ Requires:      git = %{version}-%{release}, emacs-common
 %setup -q
 %patch0 -p1
 
+# Use these same options for every invocation of 'make'.
+# Otherwise it will rebuild in %%install due to flags changes.
+%define make_git \
+make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" \\\
+     ETC_GITCONFIG=%{_sysconfdir}/gitconfig \\\
+     DESTDIR=$RPM_BUILD_ROOT \\\
+     INSTALLDIRS=vendor \\\
+     THREADED_DELTA_SEARCH=YesPlease \\\
+     gitexecdir=%{_bindir} \\\
+     prefix=%{_prefix}
+
 %build
-make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" \
-     ETC_GITCONFIG=/etc/gitconfig \
-     gitexecdir=%{_bindir} \
-     prefix=%{_prefix} all %{!?_without_docs: doc}
+%{make_git} all %{!?_without_docs: doc}
 make -C contrib/emacs
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" DESTDIR=$RPM_BUILD_ROOT \
-     prefix=%{_prefix} mandir=%{_mandir} \
-     ETC_GITCONFIG=/etc/gitconfig \
-     gitexecdir=%{_bindir} \
-     INSTALLDIRS=vendor install %{!?_without_docs: install-doc}
+%{make_git} install %{!?_without_docs: install-doc}
 make -C contrib/emacs install \
 		 emacsdir=$RPM_BUILD_ROOT%{_datadir}/emacs/site-lisp
 for elc in $RPM_BUILD_ROOT%{_datadir}/emacs/site-lisp/*.elc ; do
@@ -242,6 +246,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n emacs-git
 %defattr(-,root,root)
+%exclude %{_datadir}/emacs/site-lisp/vc-git.el*
 %{_datadir}/emacs/site-lisp/*git*.el*
 %{_datadir}/emacs/site-lisp/site-start.d/git-init.el
 
@@ -261,6 +266,13 @@ rm -rf $RPM_BUILD_ROOT
 # No files for you!
 
 %changelog
+* Mon Mar 02 2009 Todd Zullinger <tmz@pobox.com> - 1.6.0.6-2
+- Enable parallel delta searching when packing objects (Roland McGrath)
+- Consolidate build/install options in %%make_git (Roland McGrath)
+- Require perl(Authen::SASL) in git-email (bug 483062)
+- Exclude vc-git.el from emacs-git (bug 479531)
+- Update URL field
+
 * Sat Dec 20 2008 Todd Zullinger <tmz@pobox.com> 1.6.0.6-1
 - git-1.6.0.6
 - Fixes a local privilege escalation bug in gitweb
