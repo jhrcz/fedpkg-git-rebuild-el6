@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.6.0.6
-Release: 	2%{?dist}
+Release: 	3%{?dist}
 Summary:  	Core git tools
 License: 	GPLv2
 Group: 		Development/Tools
@@ -15,7 +15,7 @@ BuildRequires:	zlib-devel >= 1.2, openssl-devel, libcurl-devel, expat-devel, ema
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires:	perl-Git = %{version}-%{release}
-Requires:	zlib >= 1.2, rsync, libcurl, less, openssh-clients, expat, perl(Error)
+Requires:	zlib >= 1.2, rsync, less, openssh-clients, expat, perl(Error)
 Provides:	git-core = %{version}-%{release}
 Obsoletes:	git-core <= 1.5.4.3
 
@@ -172,11 +172,11 @@ find $RPM_BUILD_ROOT -type f -name perllocal.pod -exec rm -f {} ';'
 (find $RPM_BUILD_ROOT%{_bindir} -type f | grep -vE "archimport|svn|cvs|email|gitk|git-gui|git-citooli|git-daemon" | sed -e s@^$RPM_BUILD_ROOT@@)               > bin-man-doc-files
 (find $RPM_BUILD_ROOT%{perl_vendorlib} -type f | sed -e s@^$RPM_BUILD_ROOT@@) >> perl-files
 %if %{!?_without_docs:1}0
-(find $RPM_BUILD_ROOT%{_mandir} $RPM_BUILD_ROOT/Documentation -type f | grep -vE "archimport|svn|git-cvs|email|gitk|git-gui|git-citool" | sed -e s@^$RPM_BUILD_ROOT@@ -e 's/$/*/' ) >> bin-man-doc-files
+(find $RPM_BUILD_ROOT%{_mandir} $RPM_BUILD_ROOT/Documentation -type f | grep -vE "archimport|svn|git-cvs|email|gitk|git-gui|git-citool|git-daemon" | sed -e s@^$RPM_BUILD_ROOT@@ -e 's/$/*/' ) >> bin-man-doc-files
 %else
 rm -rf $RPM_BUILD_ROOT%{_mandir}
 %endif
-mkdir -p $RPM_BUILD_ROOT/var/lib/git-daemon
+mkdir -p $RPM_BUILD_ROOT%{_var}/lib/git
 
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/bash_completion.d
 install -m 644 -T contrib/completion/git-completion.bash $RPM_BUILD_ROOT%{_sysconfdir}/bash_completion.d/git
@@ -252,9 +252,12 @@ rm -rf $RPM_BUILD_ROOT
 
 %files daemon
 %defattr(-,root,root)
+%doc Documentation/*daemon*.txt
 %{_bindir}/git-daemon
 %config(noreplace)%{_sysconfdir}/xinetd.d/git
-/var/lib/git-daemon
+%{_var}/lib/git
+%{!?_without_docs: %{_mandir}/man1/*daemon*.1*}
+%{!?_without_docs: %doc Documentation/*daemon*.html}
 
 %files -n gitweb
 %defattr(-,root,root)
@@ -266,11 +269,14 @@ rm -rf $RPM_BUILD_ROOT
 # No files for you!
 
 %changelog
-* Mon Mar 02 2009 Todd Zullinger <tmz@pobox.com> - 1.6.0.6-2
+* Mon Mar 02 2009 Todd Zullinger <tmz@pobox.com> - 1.6.0.6-3
 - Enable parallel delta searching when packing objects (Roland McGrath)
 - Consolidate build/install options in %%make_git (Roland McGrath)
 - Require perl(Authen::SASL) in git-email (bug 483062)
 - Exclude vc-git.el from emacs-git (bug 479531)
+- Change /var/lib/git-daemon to %{_var}/lib/git
+- Include docs in the git-daemon package
+- Drop redundant libcurl Requires
 - Update URL field
 
 * Sat Dec 20 2008 Todd Zullinger <tmz@pobox.com> 1.6.0.6-1
