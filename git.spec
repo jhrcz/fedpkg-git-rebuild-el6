@@ -1,21 +1,21 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
-Version: 	1.5.6.6
-Release: 	1%{?dist}
+Version: 	1.6.0.6
+Release: 	3%{?dist}
 Summary:  	Core git tools
 License: 	GPLv2
 Group: 		Development/Tools
-URL: 		http://kernel.org/pub/software/scm/git/
-Source: 	http://kernel.org/pub/software/scm/git/%{name}-%{version}.tar.gz
+URL:		http://git-scm.com/
+Source: 	http://kernel.org/pub/software/scm/git/%{name}-%{version}.tar.bz2
 Source1:	git-init.el
 Source2:	git.xinetd
 Source3:	git.conf.httpd
 Patch0:		git-1.5-gitweb-home-link.patch
-BuildRequires:	zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel, emacs, gettext %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
+BuildRequires:	zlib-devel >= 1.2, openssl-devel, libcurl-devel, expat-devel, emacs, gettext %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires:	perl-Git = %{version}-%{release}
-Requires:	zlib >= 1.2, rsync, curl, less, openssh-clients, expat, perl(Error)
+Requires:	zlib >= 1.2, rsync, less, openssh-clients, expat, perl(Error)
 Provides:	git-core = %{version}-%{release}
 Obsoletes:	git-core <= 1.5.4.3
 
@@ -90,7 +90,7 @@ Git tools for importing Arch repositories.
 Summary:        Git tools for sending email
 Group:          Development/Tools
 Requires:	git = %{version}-%{release}, perl-Git = %{version}-%{release}
-Requires:       perl(Net::SMTP::SSL)
+Requires:       perl(Net::SMTP::SSL), perl(Authen::SASL)
 %description email
 Git tools for sending email.
 
@@ -131,18 +131,24 @@ Requires:      git = %{version}-%{release}, emacs-common
 %setup -q
 %patch0 -p1
 
+# Use these same options for every invocation of 'make'.
+# Otherwise it will rebuild in %%install due to flags changes.
+%define make_git \
+make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" \\\
+     ETC_GITCONFIG=%{_sysconfdir}/gitconfig \\\
+     DESTDIR=$RPM_BUILD_ROOT \\\
+     INSTALLDIRS=vendor \\\
+     THREADED_DELTA_SEARCH=YesPlease \\\
+     gitexecdir=%{_bindir} \\\
+     prefix=%{_prefix}
+
 %build
-make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" \
-     ETC_GITCONFIG=/etc/gitconfig \
-     prefix=%{_prefix} all %{!?_without_docs: doc}
+%{make_git} all %{!?_without_docs: doc}
 make -C contrib/emacs
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" DESTDIR=$RPM_BUILD_ROOT \
-     prefix=%{_prefix} mandir=%{_mandir} \
-     ETC_GITCONFIG=/etc/gitconfig \
-     INSTALLDIRS=vendor install %{!?_without_docs: install-doc}
+%{make_git} install %{!?_without_docs: install-doc}
 make -C contrib/emacs install \
 		 emacsdir=$RPM_BUILD_ROOT%{_datadir}/emacs/site-lisp
 for elc in $RPM_BUILD_ROOT%{_datadir}/emacs/site-lisp/*.elc ; do
@@ -166,11 +172,11 @@ find $RPM_BUILD_ROOT -type f -name perllocal.pod -exec rm -f {} ';'
 (find $RPM_BUILD_ROOT%{_bindir} -type f | grep -vE "archimport|svn|cvs|email|gitk|git-gui|git-citooli|git-daemon" | sed -e s@^$RPM_BUILD_ROOT@@)               > bin-man-doc-files
 (find $RPM_BUILD_ROOT%{perl_vendorlib} -type f | sed -e s@^$RPM_BUILD_ROOT@@) >> perl-files
 %if %{!?_without_docs:1}0
-(find $RPM_BUILD_ROOT%{_mandir} $RPM_BUILD_ROOT/Documentation -type f | grep -vE "archimport|svn|git-cvs|email|gitk|git-gui|git-citool" | sed -e s@^$RPM_BUILD_ROOT@@ -e 's/$/*/' ) >> bin-man-doc-files
+(find $RPM_BUILD_ROOT%{_mandir} $RPM_BUILD_ROOT/Documentation -type f | grep -vE "archimport|svn|git-cvs|email|gitk|git-gui|git-citool|git-daemon" | sed -e s@^$RPM_BUILD_ROOT@@ -e 's/$/*/' ) >> bin-man-doc-files
 %else
 rm -rf $RPM_BUILD_ROOT%{_mandir}
 %endif
-mkdir -p $RPM_BUILD_ROOT/srv/git
+mkdir -p $RPM_BUILD_ROOT%{_var}/lib/git
 
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/bash_completion.d
 install -m 644 -T contrib/completion/git-completion.bash $RPM_BUILD_ROOT%{_sysconfdir}/bash_completion.d/git
@@ -240,14 +246,18 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n emacs-git
 %defattr(-,root,root)
+%exclude %{_datadir}/emacs/site-lisp/vc-git.el*
 %{_datadir}/emacs/site-lisp/*git*.el*
 %{_datadir}/emacs/site-lisp/site-start.d/git-init.el
 
 %files daemon
 %defattr(-,root,root)
+%doc Documentation/*daemon*.txt
 %{_bindir}/git-daemon
 %config(noreplace)%{_sysconfdir}/xinetd.d/git
-/srv/git
+%{_var}/lib/git
+%{!?_without_docs: %{_mandir}/man1/*daemon*.1*}
+%{!?_without_docs: %doc Documentation/*daemon*.html}
 
 %files -n gitweb
 %defattr(-,root,root)
@@ -259,14 +269,50 @@ rm -rf $RPM_BUILD_ROOT
 # No files for you!
 
 %changelog
-* Sat Dec 20 2008 Todd Zullinger <tmz@pobox.com> 1.5.6.6-1
-- git-1.5.6.6
+* Mon Mar 02 2009 Todd Zullinger <tmz@pobox.com> - 1.6.0.6-3
+- Enable parallel delta searching when packing objects (Roland McGrath)
+- Consolidate build/install options in %%make_git (Roland McGrath)
+- Require perl(Authen::SASL) in git-email (bug 483062)
+- Exclude vc-git.el from emacs-git (bug 479531)
+- Change /srv/git to %{_var}/lib/git
+- Include docs in the git-daemon package
+- Drop redundant libcurl Requires
+- Update URL field
+
+* Sat Dec 20 2008 Todd Zullinger <tmz@pobox.com> 1.6.0.6-1
+- git-1.6.0.6
 - Fixes a local privilege escalation bug in gitweb
-- Make git-email require perl(Net::SMTP::SSL) (bug 443615)
+  (http://article.gmane.org/gmane.comp.version-control.git/103624)
 - Add gitk Requires to git-gui (bug 476308)
 
-* Tue Oct 22 2008 Josh Boyer <jwboyer@gmail.com> 1.5.6.5-1
-- git-1.5.6.5 (bug 458156)
+* Thu Dec 11 2008 Josh Boyer <jboyer@gmail.com> 1.6.0.5-1
+- git-1.6.0.5
+
+* Mon Nov 17 2008 Seth Vidal <skvidal at fedoraproject.org>
+- switch from /srv/git to /var/lib/git-daemon for packaging rules compliance
+
+* Fri Nov 14 2008 Josh Boyer <jwboyer@gmail.com> 1.6.0.4-1
+- git-1.6.0.4
+
+* Wed Oct 22 2008 Josh Boyer <jwboyer@gmail.com> 1.6.0.3-1
+- git-1.6.0.3
+- Drop curl requirement in favor of libcurl (bug 449388)
+- Add requires for SMTP-SSL perl module to make git-send-email work (bug 443615)
+
+* Thu Aug 28 2008 James Bowes <jbowes@redhat.com> 1.6.0.1-1
+- git-1.6.0.1
+
+* Thu Jul 24 2008 James Bowes <jbowes@redhat.com> 1.5.6-4
+- git-1.5.6.4
+
+* Thu Jun 19 2008 James Bowes <jbowes@redhat.com> 1.5.6-1
+- git-1.5.6
+
+* Tue Jun  3 2008 Stepan Kasal <skasal@redhat.com> 1.5.5.3-2
+- use tar.bz2 instead of tar.gz
+
+* Wed May 28 2008 James Bowes <jbowes@redhat.com> 1.5.5.3-1
+- git-1.5.5.3
 
 * Mon May 26 2008 James Bowes <jbowes@redhat.com> 1.5.5.2-1
 - git-1.5.5.2
