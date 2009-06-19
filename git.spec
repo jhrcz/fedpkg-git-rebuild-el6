@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.5.5.6
-Release: 	2%{?dist}
+Release: 	4%{?dist}
 Summary:  	Core git tools
 License: 	GPL
 Group: 		Development/Tools
@@ -11,7 +11,12 @@ Source1:	git-init.el
 Source2:	git.xinetd
 Source3:	git.conf.httpd
 Patch0:		git-1.5-gitweb-home-link.patch
-Patch1:         CVE-2008-5517.patch
+# http://git.kernel.org/?p=git/git.git;a=commitdiff;h=516381d5
+Patch1:		CVE-2008-5517.patch
+# http://git.kernel.org/?p=git/git.git;a=commitdiff;h=336d09da
+Patch2:		git-1.5.5.6-reflog-permissions.patch
+# http://git.kernel.org/?p=git/git.git;a=commitdiff;h=73bb33a9
+Patch3:         git-1.5.5.6-daemon-extra-args.patch
 BuildRequires:	perl, zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel, emacs, gettext %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -122,6 +127,8 @@ Requires:      git = %{version}-%{release}, emacs-common
 %setup -q
 %patch0 -p1
 %patch1 -p1 -b .CVE-2008-5517
+%patch2 -p1 -b .reflog-perms
+%patch3 -p1 -b .daemon-extra-args
 
 %build
 make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" \
@@ -246,6 +253,12 @@ rm -rf $RPM_BUILD_ROOT
 # No files for you!
 
 %changelog
+* Fri Jun 19 2009 Todd Zullinger <tmz@pobox.com> - 1.5.5.6-4
+- Fix git-daemon hang on invalid input (CVE-2009-2108, bug 505761)
+
+* Wed Jan 14 2009 Todd Zullinger <tmz@pobox.com> 1.5.5.6-3
+- Add upstream patch for reflog permissions issue on shared repositories
+
 * Mon Jan 12 2009 Todd Zullinger <tmz@pobox.com> 1.5.5.6-2
 - Fix CVE-2008-5517, gitweb remote command injection
 
