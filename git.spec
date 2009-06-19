@@ -1,6 +1,6 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name:           git
-Version:        1.6.2.2
+Version:        1.6.2.5
 Release:        1%{?dist}
 Summary:        Core git tools
 License:        GPLv2
@@ -13,6 +13,8 @@ Source3:        git.conf.httpd
 Patch0:         git-1.5-gitweb-home-link.patch
 # https://bugzilla.redhat.com/490602
 Patch1:         git-cvsimport-Ignore-cvsps-2.2b1-Branches-output.patch
+# http://git.kernel.org/?p=git/git.git;a=commitdiff;h=73bb33a9
+Patch2:         git-1.6.2.5-daemon-extra-args.patch
 BuildRequires:  zlib-devel >= 1.2, openssl-devel, libcurl-devel, expat-devel, emacs, gettext %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -143,6 +145,7 @@ Requires:       git = %{version}-%{release}, emacs-common
 %setup -q
 %patch0 -p1
 %patch1 -p1
+%patch2 -p1
 
 # Use these same options for every invocation of 'make'.
 # Otherwise it will rebuild in %%install due to flags changes.
@@ -298,6 +301,10 @@ rm -rf $RPM_BUILD_ROOT
 # No files for you!
 
 %changelog
+* Fri Jun 19 2009 Todd Zullinger <tmz@pobox.com> - 1.6.2.5-1
+- Update to 1.6.2.5
+- Fix git-daemon hang on invalid input (CVE-2009-2108, bug 505761)
+
 * Fri Apr 03 2009 Todd Zullinger <tmz@pobox.com> - 1.6.2.2-1
 - git-1.6.2.2
 - Include contrib/ dir in %%doc (bug 492490)
