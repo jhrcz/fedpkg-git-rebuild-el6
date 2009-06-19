@@ -1,7 +1,7 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 Name: 		git
 Version: 	1.5.4.7
-Release: 	2%{?dist}
+Release: 	3%{?dist}
 Summary:  	Git core and tools
 License: 	GPL
 Group: 		Development/Tools
@@ -12,6 +12,7 @@ Source2:	git.conf.httpd
 Patch0:		git-1.5-gitweb-home-link.patch
 Patch1:		gitweb-CVE-2008-5516.patch
 Patch2:		gitweb-CVE-2008-5517.patch
+Patch3:         git-1.5.4.7-daemon-extra-args.patch
 BuildRequires:	perl, zlib-devel >= 1.2, openssl-devel, curl-devel, expat-devel, gettext %{!?_without_docs:, xmlto, asciidoc > 6.0.3}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:	git-core, git-svn, git-cvs, git-email, gitk, git-gui, perl-Git
@@ -97,6 +98,7 @@ Perl interface to Git
 %patch0 -p1
 %patch1 -p1 -b .CVE-2008-5516
 %patch2 -p1 -b .CVE-2008-5517
+%patch3 -p1 -b .daemon-extra-args
 
 %build
 make %{_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" \
@@ -200,6 +202,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Jun 19 2009 Todd Zullinger <tmz@pobox.com> - 1.5.4.7-3
+- Fix git-daemon hang on invalid input (CVE-2009-2108, bug 505761)
+
 * Mon Jan 12 2009 Todd Zullinger <tmz@pobox.com> 1.5.4.7-2
 - Backport gitweb fixes for CVE-2008-5516 and CVE-2008-5517 (bug 479715)
 
