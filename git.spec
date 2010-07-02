@@ -6,7 +6,7 @@
 %endif
 
 Name:           git
-Version:        1.7.1
+Version:        1.7.1.1
 Release:        1%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
@@ -456,6 +456,9 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Fri Jul 02 2010 Adam Tkac <atkac redhat com> - 1.7.1.1-1
+- update to 1.7.1.1
+
 * Tue May 04 2010 Todd Zullinger <tmz@pobox.com> - 1.7.1-1
 - git-1.7.1
 - Fix conditionals for EL-6
