@@ -6,7 +6,7 @@
 %endif
 
 Name:           git
-Version:        1.7.4
+Version:        1.7.4.2
 Release:        1%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
@@ -23,11 +23,15 @@ Patch0:         git-1.5-gitweb-home-link.patch
 Patch1:         git-cvsimport-Ignore-cvsps-2.2b1-Branches-output.patch
 # https://bugzilla.redhat.com/500137
 Patch2:         git-1.6-update-contrib-hooks-path.patch
+# https://bugzilla.redhat.com/600411
+Patch3:         git-1.7-el5-emacs-support.patch
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  desktop-file-utils
+%if 0%{?fedora} || 0%{?rhel} >= 5
+BuildRequires:  emacs
+%endif
 %if 0%{?fedora} || 0%{?rhel} >= 6
-BuildRequires:  emacs >= 22.2
 BuildRequires:  libcurl-devel
 %else
 BuildRequires:  curl-devel
@@ -81,7 +85,7 @@ Requires:       git-gui = %{version}-%{release}
 Requires:       git-svn = %{version}-%{release}
 Requires:       gitk = %{version}-%{release}
 Requires:       perl-Git = %{version}-%{release}
-%if 0%{?fedora} || 0%{?rhel} >= 6
+%if 0%{?fedora} || 0%{?rhel} >= 5
 Requires:       emacs-git = %{version}-%{release}
 %endif
 %if 0%{?fedora} || 0%{?rhel} >= 5
@@ -137,6 +141,7 @@ BuildArch:      noarch
 Requires:       git = %{version}-%{release}, cvs
 %if 0%{?fedora} || 0%{?rhel} >= 5
 Requires:       cvsps
+Requires:	perl-DBD-SQLite
 %endif
 %description cvs
 Git tools for importing CVS repositories.
@@ -202,12 +207,17 @@ Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $versi
 %description -n perl-Git
 Perl interface to Git.
 
-%if 0%{?fedora} || 0%{?rhel} >= 6
+%if 0%{?fedora} || 0%{?rhel} >= 5
 %package -n emacs-git
 Summary:        Git version control system support for Emacs
 Group:          Applications/Editors
+Requires:       git = %{version}-%{release}
+%if 0%{?fedora} || 0%{?rhel} >= 6
 BuildArch:      noarch
-Requires:       git = %{version}-%{release}, emacs(bin) >= %{_emacs_version}
+Requires:       emacs(bin) >= %{_emacs_version}
+%else
+Requires:       emacs-common
+%endif
 
 %description -n emacs-git
 %{summary}.
@@ -215,7 +225,9 @@ Requires:       git = %{version}-%{release}, emacs(bin) >= %{_emacs_version}
 %package -n emacs-git-el
 Summary:        Elisp source files for git version control system support for Emacs
 Group:          Applications/Editors
+%if 0%{?fedora} || 0%{?rhel} >= 6
 BuildArch:      noarch
+%endif
 Requires:       emacs-git = %{version}-%{release}
 
 %description -n emacs-git-el
@@ -227,6 +239,9 @@ Requires:       emacs-git = %{version}-%{release}
 %patch0 -p1
 %patch1 -p1
 %patch2 -p1
+%if 0%{?rhel} == 5
+%patch3 -p1
+%endif
 
 # Use these same options for every invocation of 'make'.
 # Otherwise it will rebuild in %%install due to flags changes.
@@ -245,15 +260,17 @@ prefix = %{_prefix}
 gitwebdir = %{_var}/www/git
 EOF
 
-%if 0%{?fedora} || 0%{?rhel} >= 6
-cat << \EOF >> config.mak
-ASCIIDOC8 = 1
-ASCIIDOC_NO_ROFF = 1
-EOF
-%endif
-
 %if 0%{?rhel} && 0%{?rhel} <= 5
 echo gitexecdir = %{_bindir} >> config.mak
+%endif
+
+%if 0%{?rhel} && 0%{?rhel} == 5
+# This is needed for 1.69.1-1.71.0
+echo DOCBOOK_SUPPRESS_SP = 1 >> config.mak
+%endif
+
+%if 0%{?rhel} && 0%{?rhel} <= 4
+echo ASCIIDOC7 = 1 >> config.mak
 %endif
 
 # Filter bogus perl requires
@@ -270,7 +287,7 @@ chmod +x %{__perl_requires}
 %build
 make %{?_smp_mflags} all %{!?_without_docs: doc}
 
-%if 0%{?fedora} || 0%{?rhel} >= 6
+%if 0%{?fedora} || 0%{?rhel} >= 5
 make -C contrib/emacs
 %endif
 
@@ -281,7 +298,11 @@ sed -i '/^#!bash/,+1 d' contrib/completion/git-completion.bash
 rm -rf %{buildroot}
 make %{?_smp_mflags} INSTALLDIRS=vendor install %{!?_without_docs: install-doc}
 
-%if 0%{?fedora} || 0%{?rhel} >= 6
+%if 0%{?fedora} || 0%{?rhel} >= 5
+%if 0%{?rhel} == 5
+%global _emacs_sitelispdir %{_datadir}/emacs/site-lisp
+%global _emacs_sitestartdir %{_emacs_sitelispdir}/site-start.d
+%endif
 %global elispdir %{_emacs_sitelispdir}/git
 make -C contrib/emacs install \
     emacsdir=%{buildroot}%{elispdir}
@@ -309,7 +330,7 @@ find %{buildroot} Documentation -type f -name 'git-archimport*' -exec rm -f {} '
 (find %{buildroot}{%{_bindir},%{_libexecdir}} -type f | grep -vE "archimport|svn|cvs|email|gitk|git-gui|git-citool|git-daemon" | sed -e s@^%{buildroot}@@) > bin-man-doc-files
 (find %{buildroot}%{perl_vendorlib} -type f | sed -e s@^%{buildroot}@@) >> perl-files
 %if %{!?_without_docs:1}0
-(find %{buildroot}%{_mandir} -type f | grep -vE "archimport|svn|git-cvs|email|gitk|git-gui|git-citool|git-daemon" | sed -e s@^%{buildroot}@@ -e 's/$/*/' ) >> bin-man-doc-files
+(find %{buildroot}%{_mandir} -type f | grep -vE "archimport|svn|git-cvs|email|gitk|git-gui|git-citool|git-daemon|Git" | sed -e s@^%{buildroot}@@ -e 's/$/*/' ) >> bin-man-doc-files
 %else
 rm -rf %{buildroot}%{_mandir}
 %endif
@@ -419,8 +440,9 @@ rm -rf %{buildroot}
 
 %files -n perl-Git -f perl-files
 %defattr(-,root,root)
+%{!?_without_docs: %{_mandir}/man3/*Git*.3pm*}
 
-%if 0%{?fedora} || 0%{?rhel} >= 6
+%if 0%{?fedora} || 0%{?rhel} >= 5
 %files -n emacs-git
 %defattr(-,root,root)
 %doc contrib/emacs/README
@@ -454,6 +476,19 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Mon Mar 28 2011 Adam Tkac <atkac redhat com> - 1.7.4.2-1
+- update to 1.7.4.2
+- move man3/Git.3pm file to perl-Git subpkg (#664889)
+- add perl-DBD-SQLite dependency to git-cvs (#602410)
+
+* Sun Feb 13 2011 Todd Zullinger <tmz@pobox.com> - 1.7.4.1-1
+- Update to 1.7.4.1
+- Clean up documentation settings (the defaults changed in 1.7.4)
+- Improve EL-5 compatibility, thanks to Kevin Fenzi for emacs testing
+
+* Tue Feb 08 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.7.4-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
+
 * Mon Jan 31 2011 Adam Tkac <atkac redhat com> - 1.7.4-1
 - update to 1.7.4
 
