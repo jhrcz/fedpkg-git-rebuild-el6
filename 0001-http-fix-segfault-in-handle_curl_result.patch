@@ -1,0 +1,98 @@
+From 188923f0d1c8148415b3173986cd1e21871c947e Mon Sep 17 00:00:00 2001
+From: Jeff King <peff@peff.net>
+Date: Fri, 12 Oct 2012 02:22:49 -0400
+Subject: [PATCH] http: fix segfault in handle_curl_result
+
+When we create an http active_request_slot, we can set its
+"results" pointer back to local storage. The http code will
+fill in the details of how the request went, and we can
+access those details even after the slot has been cleaned
+up.
+
+Commit 8809703 (http: factor out http error code handling)
+switched us from accessing our local results struct directly
+to accessing it via the "results" pointer of the slot. That
+means we're accessing the slot after it has been marked as
+finished, defeating the whole purpose of keeping the results
+storage separate.
+
+Most of the time this doesn't matter, as finishing the slot
+does not actually clean up the pointer. However, when using
+curl's multi interface with the dumb-http revision walker,
+we might actually start a new request before handing control
+back to the original caller. In that case, we may reuse the
+slot, zeroing its results pointer, and leading the original
+caller to segfault while looking for its results inside the
+slot.
+
+Instead, we need to pass a pointer to our local results
+storage to the handle_curl_result function, rather than
+relying on the pointer in the slot struct. This matches what
+the original code did before the refactoring (which did not
+use a separate function, and therefore just accessed the
+results struct directly).
+
+Signed-off-by: Jeff King <peff@peff.net>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+---
+ http.c        | 7 +++----
+ http.h        | 3 ++-
+ remote-curl.c | 2 +-
+ 3 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/http.c b/http.c
+index 7c4a407..9334386 100644
+--- a/http.c
++++ b/http.c
+@@ -744,10 +744,9 @@ char *get_remote_object_url(const char *url, const char *hex,
+ 	return strbuf_detach(&buf, NULL);
+ }
+ 
+-int handle_curl_result(struct active_request_slot *slot)
++int handle_curl_result(struct active_request_slot *slot,
++		       struct slot_results *results)
+ {
+-	struct slot_results *results = slot->results;
+-
+ 	if (results->curl_result == CURLE_OK) {
+ 		credential_approve(&http_auth);
+ 		return HTTP_OK;
+@@ -818,7 +817,7 @@ static int http_request(const char *url, void *result, int target, int options)
+ 
+ 	if (start_active_slot(slot)) {
+ 		run_active_slot(slot);
+-		ret = handle_curl_result(slot);
++		ret = handle_curl_result(slot, &results);
+ 	} else {
+ 		error("Unable to start HTTP request for %s", url);
+ 		ret = HTTP_START_FAILED;
+diff --git a/http.h b/http.h
+index 12de255..0bd1e84 100644
+--- a/http.h
++++ b/http.h
+@@ -78,7 +78,8 @@ extern int start_active_slot(struct active_request_slot *slot);
+ extern void run_active_slot(struct active_request_slot *slot);
+ extern void finish_active_slot(struct active_request_slot *slot);
+ extern void finish_all_active_slots(void);
+-extern int handle_curl_result(struct active_request_slot *slot);
++extern int handle_curl_result(struct active_request_slot *slot,
++			      struct slot_results *results);
+ 
+ #ifdef USE_CURL_MULTI
+ extern void fill_active_slots(void);
+diff --git a/remote-curl.c b/remote-curl.c
+index 3ec474f..6054e47 100644
+--- a/remote-curl.c
++++ b/remote-curl.c
+@@ -369,7 +369,7 @@ static int run_slot(struct active_request_slot *slot)
+ 	slot->curl_result = curl_easy_perform(slot->curl);
+ 	finish_active_slot(slot);
+ 
+-	err = handle_curl_result(slot);
++	err = handle_curl_result(slot, &results);
+ 	if (err != HTTP_OK && err != HTTP_REAUTH) {
+ 		error("RPC failed; result=%d, HTTP code = %ld",
+ 		      results.curl_result, results.http_code);
+-- 
+1.8.0
+
