@@ -1,0 +1,55 @@
+From e174744ad17a55d4df68cec97bfbf6b0c28e762b Mon Sep 17 00:00:00 2001
+From: Oswald Buddenhagen <ossi@kde.org>
+Date: Fri, 15 Feb 2013 12:59:53 -0800
+Subject: [PATCH 3/3] imap-send: support subjectAltName as well
+
+Check not only the common name of the certificate subject, but also
+check the subject alternative DNS names as well, when verifying that
+the certificate matches that of the host we are trying to talk to.
+
+Signed-off-by: Oswald Buddenhagen <ossi@kde.org>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+---
+ imap-send.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/imap-send.c b/imap-send.c
+index 0b9c464..171c887 100644
+--- a/imap-send.c
++++ b/imap-send.c
+@@ -30,6 +30,7 @@ typedef void *SSL;
+ #else
+ #include <openssl/evp.h>
+ #include <openssl/hmac.h>
++#include <openssl/x509v3.h>
+ #endif
+ 
+ struct store_conf {
+@@ -292,6 +293,24 @@ static int verify_hostname(X509 *cert, const char *hostname)
+ 	int len;
+ 	X509_NAME *subj;
+ 	char cname[1000];
++	int i, found;
++	STACK_OF(GENERAL_NAME) *subj_alt_names;
++
++	/* try the DNS subjectAltNames */
++	found = 0;
++	if ((subj_alt_names = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL))) {
++		int num_subj_alt_names = sk_GENERAL_NAME_num(subj_alt_names);
++		for (i = 0; !found && i < num_subj_alt_names; i++) {
++			GENERAL_NAME *subj_alt_name = sk_GENERAL_NAME_value(subj_alt_names, i);
++			if (subj_alt_name->type == GEN_DNS &&
++			    strlen((const char *)subj_alt_name->d.ia5->data) == (size_t)subj_alt_name->d.ia5->length &&
++			    host_matches(hostname, (const char *)(subj_alt_name->d.ia5->data)))
++				found = 1;
++		}
++		sk_GENERAL_NAME_pop_free(subj_alt_names, GENERAL_NAME_free);
++	}
++	if (found)
++		return 0;
+ 
+ 	/* try the common name */
+ 	if (!(subj = X509_get_subject_name(cert)))
+-- 
+1.8.1.2
+

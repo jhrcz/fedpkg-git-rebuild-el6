@@ -69,7 +69,7 @@
 
 Name:           git
 Version:        1.7.11.7
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -88,6 +88,9 @@ Patch3:         git-1.7-el5-emacs-support.patch
 Patch4:         0001-cvsimport-strip-all-inappropriate-tag-strings.patch
 # https://bugzilla.redhat.com/show_bug.cgi?id=865692
 Patch5:         0001-http-fix-segfault-in-handle_curl_result.patch
+Patch6:         0001-imap-send-move-ifdef-around.patch
+Patch7:         0002-imap-send-the-subject-of-SSL-certificate-must-match-.patch
+Patch8:         0003-imap-send-support-subjectAltName-as-well.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -309,6 +312,9 @@ Requires:       emacs-git = %{version}-%{release}
 %endif
 %patch4 -p1
 %patch5 -p1
+%patch6 -p1
+%patch7 -p1
+%patch8 -p1
 
 # Use these same options for every invocation of 'make'.
 # Otherwise it will rebuild in %%install due to flags changes.
@@ -556,6 +562,9 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Wed Feb 20 2013 Adam Tkac <atkac redhat com> - 1.7.11.7-3
+- fix CVE-2013-0308
+
 * Thu Nov 22 2012 Adam Tkac <atkac redhat com> - 1.7.11.7-2
 - backport patch for remote-curl crashes (#865692)
 
