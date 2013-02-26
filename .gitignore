@@ -1,5 +1,5 @@
 *~
 *.rpm
-*.tar.bz2
+*.tar.gz
 /.build*.log
 /git-*/

@@ -1,50 +1,121 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
+
+# Leave git-* binaries in %{_bindir} on EL <= 5
 %if 0%{?rhel} && 0%{?rhel} <= 5
 %global gitcoredir %{_bindir}
 %else
 %global gitcoredir %{_libexecdir}/git-core
 %endif
 
+# Build noarch subpackages and use libcurl-devel on Fedora and EL >= 6
+%if 0%{?fedora} || 0%{?rhel} >= 6
+%global noarch_sub 1
+%global libcurl_devel libcurl-devel
+%else
+%global noarch_sub 0
+%global libcurl_devel curl-devel
+%endif
+
+# Build git-emacs, use perl(Error) and perl(Net::SMTP::SSL), require cvsps, and
+# adjust git-core obsolete version on Fedora and EL >= 5.  (We don't really
+# support EL-4, but folks stuck using it have enough problems, no point making
+# it harder on them.)
+%if 0%{?fedora} || 0%{?rhel} >= 5
+%global emacs_support 1
+%global git_core_version 1.5.4.3
+%global perl_error 1
+%global perl_net_smtp_ssl 1
+%global require_cvsps 1
+%else
+%global emacs_support 0
+%global git_core_version 1.5.4.7-4
+%global perl_error 0
+%global perl_net_smtp_ssl 0
+%global require_cvsps 0
+%endif
+
+# Patch emacs and tweak docbook spaces on EL-5
+%if 0%{?rhel} == 5
+%global emacs_old 1
+%global docbook_suppress_sp 1
+%else
+%global emacs_old 0
+%global docbook_suppress_sp 0
+%endif
+
+# Enable ipv6 for git-daemon, use desktop --vendor option and setup python
+# macros on EL <= 5
+%if 0%{?rhel} && 0%{?rhel} <= 5
+%global enable_ipv6 1
+%global use_desktop_vendor 1
+%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
+%else
+%global enable_ipv6 1
+%global use_desktop_vendor 1
+%endif
+
+# Use asciidoc-7 on EL <= 4.  Again, we don't support EL-4, but no need to make
+# it more difficult to build a modern git there.
+%if 0%{?rhel} && 0%{?rhel} <= 4
+%global asciidoc7 1
+%else
+%global asciidoc7 0
+%endif
+
+# Only build git-arch for Fedora < 16, where tla is available
+%if 0%{?fedora} && 0%{?fedora} < 16
+%global arch_support 1
+%else
+%global arch_support 0
+%endif
+
+# Build gnome-keyring git-credential helper on Fedora and RHEL >= 7
+%if 0%{?rhel} >= 7 || 0%{?fedora}
+%global gnome_keyring 1
+%else
+%global gnome_keyring 0
+%endif
+
 Name:           git
-Version:        1.7.4.1
+Version:        1.8.1.4
 Release:        1%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
 URL:            http://git-scm.com/
-Source0:        http://kernel.org/pub/software/scm/git/%{name}-%{version}.tar.bz2
-Source1:        git-init.el
-Source2:        git.xinetd.in
-Source3:        git.conf.httpd
-Source4:        git-gui.desktop
-Source5:        gitweb.conf.in
+Source0:        http://git-core.googlecode.com/files/%{name}-%{version}.tar.gz
+Source2:        git-init.el
+Source3:        git.xinetd.in
+Source4:        git.conf.httpd
+Source5:        git-gui.desktop
+Source6:        gitweb.conf.in
 Patch0:         git-1.5-gitweb-home-link.patch
 # https://bugzilla.redhat.com/490602
 Patch1:         git-cvsimport-Ignore-cvsps-2.2b1-Branches-output.patch
-# https://bugzilla.redhat.com/500137
-Patch2:         git-1.6-update-contrib-hooks-path.patch
 # https://bugzilla.redhat.com/600411
 Patch3:         git-1.7-el5-emacs-support.patch
+Patch4:         0001-DESTDIR-support-in-contrib-subtree-Makefile.patch
+
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  desktop-file-utils
-%if 0%{?fedora} || 0%{?rhel} >= 5
+%if %{emacs_support}
 BuildRequires:  emacs
 %endif
-%if 0%{?fedora} || 0%{?rhel} >= 6
-BuildRequires:  libcurl-devel
-%else
-BuildRequires:  curl-devel
-%endif
+BuildRequires:  %{libcurl_devel}
 BuildRequires:  expat-devel
 BuildRequires:  gettext
+BuildRequires:  pcre-devel
 BuildRequires:  openssl-devel
 BuildRequires:  zlib-devel >= 1.2
 %{!?_without_docs:BuildRequires: asciidoc > 6.0.3, xmlto}
+%if %{gnome_keyring}
+BuildRequires:  libgnome-keyring-devel
+%endif
 
 Requires:       less
 Requires:       openssh-clients
-%if 0%{?fedora} || 0%{?rhel} >= 5
+%if %{perl_error}
 Requires:       perl(Error)
 %endif
 Requires:       perl-Git = %{version}-%{release}
@@ -52,12 +123,11 @@ Requires:       rsync
 Requires:       zlib >= 1.2
 
 Provides:       git-core = %{version}-%{release}
-%if 0%{?fedora} || 0%{?rhel} >= 5
-Obsoletes:      git-core <= 1.5.4.3
-%else
-# EL-4 has 1.5.4.7-3.el4.  We don't support this, but no point making it more
-# difficult than it needs to be (folks stuck on EL-4 have it bad enough ;).
-Obsoletes:      git-core <= 1.5.4.7-4
+Obsoletes:      git-core <= %{git_core_version}
+
+# Obsolete git-arch as needed
+%if ! %{arch_support}
+Obsoletes:      git-arch < %{version}-%{release}
 %endif
 
 %description
@@ -72,29 +142,24 @@ SCMs, install the git-all meta-package.
 %package all
 Summary:        Meta-package to pull in all git tools
 Group:          Development/Tools
-%if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
+%if %{noarch_sub}
 BuildArch:      noarch
 %endif
 Requires:       git = %{version}-%{release}
-%if 0%{?fedora}
+%if %{arch_support}
 Requires:       git-arch = %{version}-%{release}
 %endif
 Requires:       git-cvs = %{version}-%{release}
 Requires:       git-email = %{version}-%{release}
 Requires:       git-gui = %{version}-%{release}
 Requires:       git-svn = %{version}-%{release}
+Requires:       git-p4 = %{version}-%{release}
 Requires:       gitk = %{version}-%{release}
 Requires:       perl-Git = %{version}-%{release}
-%if 0%{?fedora} || 0%{?rhel} >= 5
+%if %{emacs_support}
 Requires:       emacs-git = %{version}-%{release}
 %endif
-%if 0%{?fedora} || 0%{?rhel} >= 5
-Obsoletes:      git <= 1.5.4.3
-%else
-# EL-4 has 1.5.4.7-3.el4.  We don't support this, but no point making it more
-# difficult than it needs to be (folks stuck on EL-4 have it bad enough ;).
-Obsoletes:      git <= 1.5.4.7-4
-%endif
+Obsoletes:      git <= %{git_core_version}
 
 %description all
 Git is a fast, scalable, distributed revision control system with an
@@ -113,7 +178,7 @@ The git dæmon for supporting git:// access to git repositories
 %package -n gitweb
 Summary:        Simple web interface to git repositories
 Group:          Development/Tools
-%if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
+%if %{noarch_sub}
 BuildArch:      noarch
 %endif
 Requires:       git = %{version}-%{release}
@@ -121,13 +186,20 @@ Requires:       git = %{version}-%{release}
 %description -n gitweb
 Simple web interface to track changes in git repositories
 
+%package p4
+Summary:        Git tools for working with Perforce depots
+Group:          Development/Tools
+%if %{noarch_sub}
+BuildArch:      noarch
+%endif
+BuildRequires:  python
+Requires:       git = %{version}-%{release}
+%description p4
+%{summary}.
 
 %package svn
 Summary:        Git tools for importing Subversion repositories
 Group:          Development/Tools
-%if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
-BuildArch:      noarch
-%endif
 Requires:       git = %{version}-%{release}, subversion, perl(Term::ReadKey)
 %description svn
 Git tools for importing Subversion repositories.
@@ -135,17 +207,18 @@ Git tools for importing Subversion repositories.
 %package cvs
 Summary:        Git tools for importing CVS repositories
 Group:          Development/Tools
-%if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
+%if %{noarch_sub}
 BuildArch:      noarch
 %endif
 Requires:       git = %{version}-%{release}, cvs
-%if 0%{?fedora} || 0%{?rhel} >= 5
+%if %{require_cvsps}
 Requires:       cvsps
+Requires:	perl-DBD-SQLite
 %endif
 %description cvs
 Git tools for importing CVS repositories.
 
-%if 0%{?fedora}
+%if %{arch_support}
 %package arch
 Summary:        Git tools for importing Arch repositories
 Group:          Development/Tools
@@ -158,12 +231,12 @@ Git tools for importing Arch repositories.
 %package email
 Summary:        Git tools for sending email
 Group:          Development/Tools
-%if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
+%if %{noarch_sub}
 BuildArch:      noarch
 %endif
 Requires:       git = %{version}-%{release}, perl-Git = %{version}-%{release}
 Requires:       perl(Authen::SASL)
-%if 0%{?fedora} || 0%{?rhel} >= 5
+%if %{perl_net_smtp_ssl}
 Requires:       perl(Net::SMTP::SSL)
 %endif
 %description email
@@ -172,7 +245,7 @@ Git tools for sending email.
 %package gui
 Summary:        Git GUI tool
 Group:          Development/Tools
-%if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
+%if %{noarch_sub}
 BuildArch:      noarch
 %endif
 Requires:       git = %{version}-%{release}, tk >= 8.4
@@ -183,7 +256,7 @@ Git GUI tool.
 %package -n gitk
 Summary:        Git revision tree visualiser
 Group:          Development/Tools
-%if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
+%if %{noarch_sub}
 BuildArch:      noarch
 %endif
 Requires:       git = %{version}-%{release}, tk >= 8.4
@@ -193,11 +266,11 @@ Git revision tree visualiser.
 %package -n perl-Git
 Summary:        Perl interface to Git
 Group:          Development/Libraries
-%if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
+%if %{noarch_sub}
 BuildArch:      noarch
 %endif
 Requires:       git = %{version}-%{release}
-%if 0%{?fedora} || 0%{?rhel} >= 5
+%if %{perl_error}
 BuildRequires:  perl(Error), perl(ExtUtils::MakeMaker)
 Requires:       perl(Error)
 %endif
@@ -206,12 +279,24 @@ Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $versi
 %description -n perl-Git
 Perl interface to Git.
 
-%if 0%{?fedora} || 0%{?rhel} >= 5
+%package -n perl-Git-SVN
+Summary:        Perl interface to Git::SVN
+Group:          Development/Libraries
+%if %{noarch_sub}
+BuildArch:      noarch
+%endif
+Requires:       git = %{version}-%{release}
+Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
+
+%description -n perl-Git-SVN
+Perl interface to Git.
+
+%if %{emacs_support}
 %package -n emacs-git
 Summary:        Git version control system support for Emacs
 Group:          Applications/Editors
 Requires:       git = %{version}-%{release}
-%if 0%{?fedora} || 0%{?rhel} >= 6
+%if %{noarch_sub}
 BuildArch:      noarch
 Requires:       emacs(bin) >= %{_emacs_version}
 %else
@@ -224,7 +309,7 @@ Requires:       emacs-common
 %package -n emacs-git-el
 Summary:        Elisp source files for git version control system support for Emacs
 Group:          Applications/Editors
-%if 0%{?fedora} || 0%{?rhel} >= 6
+%if %{noarch_sub}
 BuildArch:      noarch
 %endif
 Requires:       emacs-git = %{version}-%{release}
@@ -237,10 +322,10 @@ Requires:       emacs-git = %{version}-%{release}
 %setup -q
 %patch0 -p1
 %patch1 -p1
-%patch2 -p1
-%if 0%{?rhel} == 5
+%if %{emacs_old}
 %patch3 -p1
 %endif
+%patch4 -p1
 
 # Use these same options for every invocation of 'make'.
 # Otherwise it will rebuild in %%install due to flags changes.
@@ -249,7 +334,7 @@ V = 1
 CFLAGS = %{optflags}
 BLK_SHA1 = 1
 NEEDS_CRYPTO_WITH_SSL = 1
-NO_PYTHON = 1
+USE_LIBPCRE = 1
 ETC_GITCONFIG = %{_sysconfdir}/gitconfig
 DESTDIR = %{buildroot}
 INSTALL = install -p
@@ -259,16 +344,16 @@ prefix = %{_prefix}
 gitwebdir = %{_var}/www/git
 EOF
 
-%if 0%{?rhel} && 0%{?rhel} <= 5
+%if "%{gitcoredir}" == "%{_bindir}"
 echo gitexecdir = %{_bindir} >> config.mak
 %endif
 
-%if 0%{?rhel} && 0%{?rhel} == 5
+%if %{docbook_suppress_sp}
 # This is needed for 1.69.1-1.71.0
 echo DOCBOOK_SUPPRESS_SP = 1 >> config.mak
 %endif
 
-%if 0%{?rhel} && 0%{?rhel} <= 4
+%if %{asciidoc7}
 echo ASCIIDOC7 = 1 >> config.mak
 %endif
 
@@ -286,9 +371,15 @@ chmod +x %{__perl_requires}
 %build
 make %{?_smp_mflags} all %{!?_without_docs: doc}
 
-%if 0%{?fedora} || 0%{?rhel} >= 5
+%if %{emacs_support}
 make -C contrib/emacs
 %endif
+
+%if %{gnome_keyring}
+make -C contrib/credential/gnome-keyring/
+%endif
+
+make -C contrib/subtree/
 
 # Remove shebang from bash-completion script
 sed -i '/^#!bash/,+1 d' contrib/completion/git-completion.bash
@@ -297,8 +388,8 @@ sed -i '/^#!bash/,+1 d' contrib/completion/git-completion.bash
 rm -rf %{buildroot}
 make %{?_smp_mflags} INSTALLDIRS=vendor install %{!?_without_docs: install-doc}
 
-%if 0%{?fedora} || 0%{?rhel} >= 5
-%if 0%{?rhel} == 5
+%if %{emacs_support}
+%if %{emacs_old}
 %global _emacs_sitelispdir %{_datadir}/emacs/site-lisp
 %global _emacs_sitestartdir %{_emacs_sitelispdir}/site-start.d
 %endif
@@ -309,27 +400,46 @@ for elc in %{buildroot}%{elispdir}/*.elc ; do
     install -pm 644 contrib/emacs/$(basename $elc .elc).el \
     %{buildroot}%{elispdir}
 done
-install -Dpm 644 %{SOURCE1} \
+install -Dpm 644 %{SOURCE2} \
     %{buildroot}%{_emacs_sitestartdir}/git-init.el
 %endif
 
+%if %{gnome_keyring}
+install -pm 755 contrib/credential/gnome-keyring/git-credential-gnome-keyring \
+    %{buildroot}%{gitcoredir}
+# Remove built binary files, otherwise they will be installed in doc
+make -C contrib/credential/gnome-keyring/ clean
+%endif
+
+make -C contrib/subtree install
+make -C contrib/subtree install-doc
+
 mkdir -p %{buildroot}%{_sysconfdir}/httpd/conf.d
-install -pm 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/httpd/conf.d/git.conf
+install -pm 0644 %{SOURCE4} %{buildroot}%{_sysconfdir}/httpd/conf.d/git.conf
 sed "s|@PROJECTROOT@|%{_var}/lib/git|g" \
-    %{SOURCE5} > %{buildroot}%{_sysconfdir}/gitweb.conf
+    %{SOURCE6} > %{buildroot}%{_sysconfdir}/gitweb.conf
 
 find %{buildroot} -type f -name .packlist -exec rm -f {} ';'
 find %{buildroot} -type f -name '*.bs' -empty -exec rm -f {} ';'
 find %{buildroot} -type f -name perllocal.pod -exec rm -f {} ';'
 
-%if ! 0%{?fedora}
+# Remove remote-helper python libraries and scripts, these are not ready for
+# use yet
+rm -rf %{buildroot}%{python_sitelib} %{buildroot}%{gitcoredir}/git-remote-testgit
+
+%if ! %{arch_support}
 find %{buildroot} Documentation -type f -name 'git-archimport*' -exec rm -f {} ';'
 %endif
 
-(find %{buildroot}{%{_bindir},%{_libexecdir}} -type f | grep -vE "archimport|svn|cvs|email|gitk|git-gui|git-citool|git-daemon" | sed -e s@^%{buildroot}@@) > bin-man-doc-files
-(find %{buildroot}%{perl_vendorlib} -type f | sed -e s@^%{buildroot}@@) >> perl-files
+(find %{buildroot}{%{_bindir},%{_libexecdir}} -type f | grep -vE "archimport|p4|svn|cvs|email|gitk|git-gui|git-citool|git-daemon" | sed -e s@^%{buildroot}@@) > bin-man-doc-files
+(find %{buildroot}{%{_bindir},%{_libexecdir}} -mindepth 1 -type d | grep -vE "archimport|p4|svn|cvs|email|gitk|git-gui|git-citool|git-daemon" | sed -e 's@^%{buildroot}@%dir @') >> bin-man-doc-files
+(find %{buildroot}%{perl_vendorlib} -type f | sed -e s@^%{buildroot}@@) > perl-git-files
+(find %{buildroot}%{perl_vendorlib} -mindepth 1 -type d | sed -e 's@^%{buildroot}@%dir @') >> perl-git-files
+# Split out Git::SVN files
+grep Git/SVN perl-git-files > perl-git-svn-files
+sed -i "/Git\/SVN/ d" perl-git-files
 %if %{!?_without_docs:1}0
-(find %{buildroot}%{_mandir} -type f | grep -vE "archimport|svn|git-cvs|email|gitk|git-gui|git-citool|git-daemon" | sed -e s@^%{buildroot}@@ -e 's/$/*/' ) >> bin-man-doc-files
+(find %{buildroot}%{_mandir} -type f | grep -vE "archimport|p4|svn|git-cvs|email|gitk|git-gui|git-citool|git-daemon|Git" | sed -e s@^%{buildroot}@@ -e 's/$/*/' ) >> bin-man-doc-files
 %else
 rm -rf %{buildroot}%{_mandir}
 %endif
@@ -342,11 +452,12 @@ enable_ipv6="        # xinetd does not enable IPv6 by default
 perl -p \
     -e "s|\@GITCOREDIR\@|%{gitcoredir}|g;" \
     -e "s|\@BASE_PATH\@|%{_var}/lib/git|g;" \
-%if 0%{?rhel} && 0%{?rhel} <= 5
+%if %{enable_ipv6}
     -e "s|^}|$enable_ipv6\n$&|;" \
 %endif
-    %{SOURCE2} > %{buildroot}%{_sysconfdir}/xinetd.d/git
+    %{SOURCE3} > %{buildroot}%{_sysconfdir}/xinetd.d/git
 
+# Setup bash completion
 mkdir -p %{buildroot}%{_sysconfdir}/bash_completion.d
 install -pm 644 contrib/completion/git-completion.bash %{buildroot}%{_sysconfdir}/bash_completion.d/git
 
@@ -358,17 +469,26 @@ pushd contrib > /dev/null
 ln -s ../../../git-core/contrib/hooks
 popd > /dev/null
 
+# Install git-prompt.sh
+mkdir -p %{buildroot}%{_datadir}/git-core/contrib/completion
+install -pm 644 contrib/completion/git-prompt.sh \
+    %{buildroot}%{_datadir}/git-core/contrib/completion/
+
 # install git-gui .desktop file
 desktop-file-install \
-%if 0%{?rhel} && 0%{?rhel} <= 5
+%if %{use_desktop_vendor}
     --vendor fedora \
 %endif
-    --dir=%{buildroot}%{_datadir}/applications %{SOURCE4}
+    --dir=%{buildroot}%{_datadir}/applications %{SOURCE5}
+
+# find translations
+%find_lang %{name} %{name}.lang
+cat %{name}.lang >> bin-man-doc-files
 
 # quiet some rpmlint complaints
 chmod -R g-w %{buildroot}
 find %{buildroot} -name git-mergetool--lib | xargs chmod a-x
-rm -f {Documentation/technical,contrib/emacs}/.gitignore
+rm -f {Documentation/technical,contrib/emacs,contrib/credential/gnome-keyring}/.gitignore
 chmod a-x Documentation/technical/api-index.sh
 find contrib -type f | xargs chmod -x
 
@@ -380,12 +500,18 @@ rm -rf %{buildroot}
 %files -f bin-man-doc-files
 %defattr(-,root,root)
 %{_datadir}/git-core/
-%dir %{gitcoredir}
 %doc README COPYING Documentation/*.txt Documentation/RelNotes contrib/
 %{!?_without_docs: %doc Documentation/*.html Documentation/docbook-xsl.css}
 %{!?_without_docs: %doc Documentation/howto Documentation/technical}
 %{_sysconfdir}/bash_completion.d
 
+%files p4
+%defattr(-,root,root)
+%{gitcoredir}/*p4*
+%{gitcoredir}/mergetools/p4merge
+%doc Documentation/*p4*.txt
+%{!?_without_docs: %{_mandir}/man1/*p4*.1*}
+%{!?_without_docs: %doc Documentation/*p4*.html }
 
 %files svn
 %defattr(-,root,root)
@@ -402,7 +528,7 @@ rm -rf %{buildroot}
 %{!?_without_docs: %{_mandir}/man1/*cvs*.1*}
 %{!?_without_docs: %doc Documentation/*git-cvs*.html }
 
-%if 0%{?fedora}
+%if %{arch_support}
 %files arch
 %defattr(-,root,root)
 %doc Documentation/git-archimport.txt
@@ -437,10 +563,16 @@ rm -rf %{buildroot}
 %{!?_without_docs: %{_mandir}/man1/*gitk*.1*}
 %{!?_without_docs: %doc Documentation/*gitk*.html }
 
-%files -n perl-Git -f perl-files
+%files -n perl-Git -f perl-git-files
 %defattr(-,root,root)
+%exclude %{_mandir}/man3/*Git*SVN*.3pm*
+%{!?_without_docs: %{_mandir}/man3/*Git*.3pm*}
 
-%if 0%{?fedora} || 0%{?rhel} >= 5
+%files -n perl-Git-SVN -f perl-git-svn-files
+%defattr(-,root,root)
+%{!?_without_docs: %{_mandir}/man3/*Git*SVN*.3pm*}
+
+%if %{emacs_support}
 %files -n emacs-git
 %defattr(-,root,root)
 %doc contrib/emacs/README
@@ -474,6 +606,184 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Wed Feb 20 2013 Adam Tkac <atkac redhat com> - 1.8.1.4-1
+- update to 1.8.1.4
+
+* Wed Jan 30 2013 Adam Tkac <atkac redhat com> - 1.8.1.2-1
+- update to 1.8.1.2
+- own directories which should be owned (#902517)
+
+* Thu Jan 03 2013 Adam Tkac <atkac redhat com> - 1.8.1-1
+- update to 1.8.1
+- build git-svn as arch subpkg due to new git-remote-testsvn binary
+
+* Tue Dec 11 2012 Adam Tkac <atkac redhat com> - 1.8.0.2-1
+- update to 1.8.0.2
+
+* Thu Dec 06 2012 Adam Tkac <atkac redhat com> - 1.8.0.1-2
+- don't install some unneeded credential-gnome-keyring stuff
+
+* Thu Nov 29 2012 Adam Tkac <atkac redhat com> - 1.8.0.1-1
+- update to 1.8.0.1
+- include git-subtree in git rpm (#864651)
+
+* Mon Oct 29 2012 Adam Tkac <atkac redhat com> - 1.8.0-1
+- update to 1.8.0
+- include git-credential-gnome-keyring helper in git pkg
+- 0001-cvsimport-strip-all-inappropriate-tag-strings.patch was merged
+
+* Thu Oct 25 2012 Adam Tkac <atkac redhat com> - 1.7.12.1-2
+- move git-prompt.sh into usr/share/git-core/contrib/completion (#854061)
+
+* Thu Sep 27 2012 Adam Tkac <atkac redhat com> - 1.7.12.1-1
+- update to 1.7.12.1
+- cvsimport should skip more characters (#850640)
+
+* Thu Aug 23 2012 Todd Zullinger <tmz@pobox.com> - 1.7.12-2
+- Install git-prompt.sh which provides __git_ps1()
+
+* Wed Aug 22 2012 Adam Tkac <atkac redhat com> - 1.7.12-1
+- update to 1.7.12
+
+* Wed Aug 15 2012 Todd Zullinger <tmz@pobox.com> - 1.7.11.5-1
+- Update to 1.7.11.5
+- Add git-p4 subpackage (#844008)
+
+* Tue Aug 07 2012 Adam Tkac <atkac redhat com> - 1.7.11.4-1
+- update to 1.7.11.4
+
+* Fri Jul 27 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.7.11.2-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
+
+* Wed Jul 25 2012 Todd Zullinger <tmz@pobox.com> - 1.7.11.2-2
+- Split perl(Git::SVN) into its own package (#843182)
+
+* Mon Jul 16 2012 Adam Tkac <atkac redhat com> - 1.7.11.2-1
+- update to 1.7.11.2
+
+* Thu Jun 28 2012 Petr Pisar <ppisar@redhat.com> - 1.7.10.4-2
+- Perl 5.16 rebuild
+
+* Fri Jun 15 2012 Adam Tkac <atkac redhat com> - 1.7.10.4-1
+- update to 1.7.10.4
+
+* Thu Jun 07 2012 Petr Pisar <ppisar@redhat.com> - 1.7.10.2-2
+- Perl 5.16 rebuild
+
+* Mon May 14 2012 Adam Tkac <atkac redhat com> - 1.7.10.2-1
+- update to 1.7.10.2
+
+* Thu May 03 2012 Adam Tkac <atkac redhat com> - 1.7.10.1-1
+- update to 1.7.10.1
+
+* Tue Apr 10 2012 Adam Tkac <atkac redhat com> - 1.7.10-1
+- update to 1.7.10
+
+* Fri Mar 30 2012 Adam Tkac <atkac redhat com> - 1.7.9.5-1
+- update to 1.7.9.5
+
+* Thu Mar 08 2012 Adam Tkac <atkac redhat com> - 1.7.9.3-1
+- update to 1.7.9.3
+
+* Wed Feb 15 2012 Todd Zullinger <tmz@pobox.com> - 1.7.9.1-1
+- Update to 1.7.9.1
+- Fix EPEL builds (rpm doesn't accept mutiple -f options in %files)
+
+* Fri Feb 10 2012 Petr Pisar <ppisar@redhat.com> - 1.7.9-2
+- Rebuild against PCRE 8.30
+
+* Mon Jan 30 2012 Adam Tkac <atkac redhat com> - 1.7.9-1
+- update to 1.7.9
+
+* Thu Jan 19 2012 Adam Tkac <atkac redhat com> - 1.7.8.4-1
+- update to 1.7.8.4
+
+* Thu Jan 12 2012 Adam Tkac <atkac redhat com> - 1.7.8.3-1
+- update to 1.7.8.3
+
+* Mon Jan 02 2012 Adam Tkac <atkac redhat com> - 1.7.8.2-1
+- update to 1.7.8.2
+
+* Fri Dec 23 2011 Adam Tkac <atkac redhat com> - 1.7.8.1-1
+- update to 1.7.8.1
+
+* Wed Dec 07 2011 Adam Tkac <atkac redhat com> - 1.7.8-1
+- update to 1.7.8
+
+* Tue Nov 29 2011 Adam Tkac <atkac redhat com> - 1.7.7.4-1
+- update to 1.7.7.4
+
+* Thu Nov 10 2011 Adam Tkac <atkac redhat com> - 1.7.7.3-1
+- update to 1.7.7.3
+
+* Mon Nov 07 2011 Adam Tkac <atkac redhat com> - 1.7.7.2-1
+- update to 1.7.7.2
+
+* Tue Nov 01 2011 Adam Tkac <atkac redhat com> - 1.7.7.1-1
+- update to 1.7.7.1
+
+* Wed Oct 26 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.7.7-2
+- Rebuilt for glibc bug#747377
+
+* Thu Oct 20 2011 Adam Tkac <atkac redhat com> - 1.7.7-1
+- update to 1.7.7
+  - git-1.6-update-contrib-hooks-path.patch is no longer needed
+
+* Mon Sep 26 2011 Adam Tkac <atkac redhat com> - 1.7.6.4-1
+- update to 1.7.6.4
+
+* Wed Sep 07 2011 Todd Zullinger <tmz@pobox.com> - 1.7.6.2-1
+- Update to 1.7.6.2
+- Fixes incompatibility caused by git push --quiet fix
+  http://thread.gmane.org/gmane.comp.version-control.git/180652
+
+* Mon Aug 29 2011 Todd Zullinger <tmz@pobox.com> - 1.7.6.1-2
+- Build with PCRE support (#734269)
+
+* Fri Aug 26 2011 Todd Zullinger <tmz@pobox.com> - 1.7.6.1-1
+- Update to 1.7.6.1
+- Include gpg signature for tarball in SRPM
+
+* Fri Aug 05 2011 Todd Zullinger <tmz@pobox.com> - 1.7.6-5
+- Fix git push --quiet, thanks to Clemens Buchacher (#725593)
+- Obsolete git-arch as needed
+
+* Tue Jul 26 2011 Todd Zullinger <tmz@pobox.com> - 1.7.6-4
+- Drop git-arch on fedora >= 16, the tla package has been retired
+- Rework most spec file dist conditionals to make future changes easier
+
+* Thu Jul 21 2011 Petr Sabata <contyk@redhat.com> - 1.7.6-3
+- Perl mass rebuild
+
+* Wed Jul 20 2011 Petr Sabata <contyk@redhat.com> - 1.7.6-2
+- Perl mass rebuild
+
+* Wed Jun 29 2011 Adam Tkac <atkac redhat com> - 1.7.6-1
+- update to 1.7.6
+
+* Mon Jun 20 2011 Marcela Mašláňová <mmaslano@redhat.com> - 1.7.5.4-2
+- Perl mass rebuild
+
+* Thu Jun 09 2011 Adam Tkac <atkac redhat com> - 1.7.5.4-1
+- update to 1.7.5.4
+
+* Tue May 24 2011 Adam Tkac <atkac redhat com> - 1.7.5.2-1
+- update to 1.7.5.2
+
+* Thu May 05 2011 Adam Tkac <atkac redhat com> - 1.7.5.1-1
+- update to 1.7.5.1
+
+* Wed Apr 27 2011 Adam Tkac <atkac redhat com> - 1.7.5-1
+- update to 1.7.5
+
+* Mon Apr 11 2011 Adam Tkac <atkac redhat com> - 1.7.4.4-1
+- update to 1.7.4.4
+
+* Mon Mar 28 2011 Adam Tkac <atkac redhat com> - 1.7.4.2-1
+- update to 1.7.4.2
+- move man3/Git.3pm file to perl-Git subpkg (#664889)
+- add perl-DBD-SQLite dependency to git-cvs (#602410)
+
 * Sun Feb 13 2011 Todd Zullinger <tmz@pobox.com> - 1.7.4.1-1
 - Update to 1.7.4.1
 - Clean up documentation settings (the defaults changed in 1.7.4)
