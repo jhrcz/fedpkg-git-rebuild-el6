@@ -1,76 +1,34 @@
 # Pass --without docs to rpmbuild if you don't want the documentation
 
-# Leave git-* binaries in %{_bindir} on EL <= 5
+# Settings for EL-5
+# - Leave git-* binaries in %{_bindir}
+# - Don't use noarch subpackages
+# - Use proper libcurl devel package
+# - Patch emacs and tweak docbook spaces
+# - Explicitly enable ipv6 for git-daemon
+# - Use prebuilt documentation, asciidoc is too old
+# - Define missing python macro
 %if 0%{?rhel} && 0%{?rhel} <= 5
-%global gitcoredir %{_bindir}
-%else
-%global gitcoredir %{_libexecdir}/git-core
-%endif
-
-# Build noarch subpackages and use libcurl-devel on Fedora and EL >= 6
-%if 0%{?fedora} || 0%{?rhel} >= 6
-%global noarch_sub 1
-%global libcurl_devel libcurl-devel
-%else
-%global noarch_sub 0
-%global libcurl_devel curl-devel
-%endif
-
-# Build git-emacs, use perl(Error) and perl(Net::SMTP::SSL), require cvsps, and
-# adjust git-core obsolete version on Fedora and EL >= 5.  (We don't really
-# support EL-4, but folks stuck using it have enough problems, no point making
-# it harder on them.)
-%if 0%{?fedora} || 0%{?rhel} >= 5
-%global emacs_support 1
-%global git_core_version 1.5.4.3
-%global perl_error 1
-%global perl_net_smtp_ssl 1
-%global require_cvsps 1
-%else
-%global emacs_support 0
-%global git_core_version 1.5.4.7-4
-%global perl_error 0
-%global perl_net_smtp_ssl 0
-%global require_cvsps 0
-%endif
-
-# Patch emacs and tweak docbook spaces on EL-5
-%if 0%{?rhel} == 5
-%global emacs_old 1
+%global gitcoredir          %{_bindir}
+%global noarch_sub          0
+%global libcurl_devel       curl-devel
+%global emacs_old           1
 %global docbook_suppress_sp 1
-%else
-%global emacs_old 0
-%global docbook_suppress_sp 0
-%endif
-
-# Enable ipv6 for git-daemon, use desktop --vendor option and setup python
-# macros on EL <= 5
-%if 0%{?rhel} && 0%{?rhel} <= 5
-%global enable_ipv6 1
-%global use_desktop_vendor 1
+%global enable_ipv6         1
+%global use_prebuilt_docs   1
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 %else
-%global enable_ipv6 1
-%global use_desktop_vendor 1
-%endif
-
-# Use asciidoc-7 on EL <= 4.  Again, we don't support EL-4, but no need to make
-# it more difficult to build a modern git there.
-%if 0%{?rhel} && 0%{?rhel} <= 4
-%global asciidoc7 1
-%else
-%global asciidoc7 0
-%endif
-
-# Only build git-arch for Fedora < 16, where tla is available
-%if 0%{?fedora} && 0%{?fedora} < 16
-%global arch_support 1
-%else
-%global arch_support 0
+%global gitcoredir          %{_libexecdir}/git-core
+%global noarch_sub          1
+%global libcurl_devel       libcurl-devel
+%global emacs_old           0
+%global docbook_suppress_sp 0
+%global enable_ipv6         0
+%global use_prebuilt_docs   0
 %endif
 
 # Build gnome-keyring git-credential helper on Fedora and RHEL >= 7
-%if 0%{?rhel} >= 7 || 0%{?fedora}
+%if 0%{?fedora} || 0%{?rhel} >= 7
 %global gnome_keyring 1
 %else
 %global gnome_keyring 0
@@ -78,7 +36,7 @@
 
 Name:           git
 Version:        1.8.1.4
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -89,46 +47,46 @@ Source3:        git.xinetd.in
 Source4:        git.conf.httpd
 Source5:        git-gui.desktop
 Source6:        gitweb.conf.in
+Source10:       http://git-core.googlecode.com/files/%{name}-manpages-%{version}.tar.gz
+Source11:       http://git-core.googlecode.com/files/%{name}-htmldocs-%{version}.tar.gz
 Patch0:         git-1.5-gitweb-home-link.patch
 # https://bugzilla.redhat.com/490602
 Patch1:         git-cvsimport-Ignore-cvsps-2.2b1-Branches-output.patch
 # https://bugzilla.redhat.com/600411
 Patch3:         git-1.7-el5-emacs-support.patch
 Patch4:         0001-DESTDIR-support-in-contrib-subtree-Makefile.patch
+Patch5:         0001-git-subtree-Use-gitexecdir-instead-of-libexecdir.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  desktop-file-utils
-%if %{emacs_support}
-BuildRequires:  emacs
+%if ! %{use_prebuilt_docs} && ! 0%{?_without_docs}
+BuildRequires:  asciidoc >= 8.4.1
+BuildRequires:  xmlto
 %endif
-BuildRequires:  %{libcurl_devel}
+BuildRequires:  desktop-file-utils
+BuildRequires:  emacs
 BuildRequires:  expat-devel
 BuildRequires:  gettext
-BuildRequires:  pcre-devel
-BuildRequires:  openssl-devel
-BuildRequires:  zlib-devel >= 1.2
-%{!?_without_docs:BuildRequires: asciidoc > 6.0.3, xmlto}
+BuildRequires:  %{libcurl_devel}
 %if %{gnome_keyring}
 BuildRequires:  libgnome-keyring-devel
 %endif
+BuildRequires:  pcre-devel
+BuildRequires:  openssl-devel
+BuildRequires:  zlib-devel >= 1.2
 
 Requires:       less
 Requires:       openssh-clients
-%if %{perl_error}
 Requires:       perl(Error)
-%endif
 Requires:       perl-Git = %{version}-%{release}
 Requires:       rsync
 Requires:       zlib >= 1.2
 
 Provides:       git-core = %{version}-%{release}
-Obsoletes:      git-core <= %{git_core_version}
+Obsoletes:      git-core <= 1.5.4.3
 
-# Obsolete git-arch as needed
-%if ! %{arch_support}
+# Obsolete git-arch
 Obsoletes:      git-arch < %{version}-%{release}
-%endif
 
 %description
 Git is a fast, scalable, distributed revision control system with an
@@ -146,9 +104,6 @@ Group:          Development/Tools
 BuildArch:      noarch
 %endif
 Requires:       git = %{version}-%{release}
-%if %{arch_support}
-Requires:       git-arch = %{version}-%{release}
-%endif
 Requires:       git-cvs = %{version}-%{release}
 Requires:       git-email = %{version}-%{release}
 Requires:       git-gui = %{version}-%{release}
@@ -156,10 +111,8 @@ Requires:       git-svn = %{version}-%{release}
 Requires:       git-p4 = %{version}-%{release}
 Requires:       gitk = %{version}-%{release}
 Requires:       perl-Git = %{version}-%{release}
-%if %{emacs_support}
 Requires:       emacs-git = %{version}-%{release}
-%endif
-Obsoletes:      git <= %{git_core_version}
+Obsoletes:      git <= 1.5.4.3
 
 %description all
 Git is a fast, scalable, distributed revision control system with an
@@ -211,22 +164,10 @@ Group:          Development/Tools
 BuildArch:      noarch
 %endif
 Requires:       git = %{version}-%{release}, cvs
-%if %{require_cvsps}
 Requires:       cvsps
 Requires:	perl-DBD-SQLite
-%endif
 %description cvs
 Git tools for importing CVS repositories.
-
-%if %{arch_support}
-%package arch
-Summary:        Git tools for importing Arch repositories
-Group:          Development/Tools
-BuildArch:      noarch
-Requires:       git = %{version}-%{release}, tla
-%description arch
-Git tools for importing Arch repositories.
-%endif
 
 %package email
 Summary:        Git tools for sending email
@@ -236,9 +177,7 @@ BuildArch:      noarch
 %endif
 Requires:       git = %{version}-%{release}, perl-Git = %{version}-%{release}
 Requires:       perl(Authen::SASL)
-%if %{perl_net_smtp_ssl}
 Requires:       perl(Net::SMTP::SSL)
-%endif
 %description email
 Git tools for sending email.
 
@@ -270,10 +209,8 @@ Group:          Development/Libraries
 BuildArch:      noarch
 %endif
 Requires:       git = %{version}-%{release}
-%if %{perl_error}
 BuildRequires:  perl(Error), perl(ExtUtils::MakeMaker)
 Requires:       perl(Error)
-%endif
 Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 
 %description -n perl-Git
@@ -291,7 +228,6 @@ Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $versi
 %description -n perl-Git-SVN
 Perl interface to Git.
 
-%if %{emacs_support}
 %package -n emacs-git
 Summary:        Git version control system support for Emacs
 Group:          Applications/Editors
@@ -316,7 +252,6 @@ Requires:       emacs-git = %{version}-%{release}
 
 %description -n emacs-git-el
 %{summary}.
-%endif
 
 %prep
 %setup -q
@@ -326,6 +261,16 @@ Requires:       emacs-git = %{version}-%{release}
 %patch3 -p1
 %endif
 %patch4 -p1
+%patch5 -p1
+
+%if %{use_prebuilt_docs}
+mkdir -p prebuilt_docs/{html,man}
+tar xf %{SOURCE10} -C prebuilt_docs/man
+tar xf %{SOURCE11} -C prebuilt_docs/html
+# Remove non-html files
+find prebuilt_docs/html -type f ! -name '*.html' | xargs rm
+find prebuilt_docs/html -type d | xargs rmdir --ignore-fail-on-non-empty
+%endif
 
 # Use these same options for every invocation of 'make'.
 # Otherwise it will rebuild in %%install due to flags changes.
@@ -339,6 +284,7 @@ ETC_GITCONFIG = %{_sysconfdir}/gitconfig
 DESTDIR = %{buildroot}
 INSTALL = install -p
 GITWEB_PROJECTROOT = %{_var}/lib/git
+GNU_ROFF = 1
 htmldir = %{_docdir}/%{name}-%{version}
 prefix = %{_prefix}
 gitwebdir = %{_var}/www/git
@@ -353,10 +299,6 @@ echo gitexecdir = %{_bindir} >> config.mak
 echo DOCBOOK_SUPPRESS_SP = 1 >> config.mak
 %endif
 
-%if %{asciidoc7}
-echo ASCIIDOC7 = 1 >> config.mak
-%endif
-
 # Filter bogus perl requires
 # packed-refs comes from a comment in contrib/hooks/update-paranoid
 cat << \EOF > %{name}-req
@@ -369,11 +311,12 @@ EOF
 chmod +x %{__perl_requires}
 
 %build
-make %{?_smp_mflags} all %{!?_without_docs: doc}
-
-%if %{emacs_support}
-make -C contrib/emacs
+make %{?_smp_mflags} all
+%if ! %{use_prebuilt_docs} && ! 0%{?_without_docs}
+make %{?_smp_mflags} doc
 %endif
+
+make -C contrib/emacs
 
 %if %{gnome_keyring}
 make -C contrib/credential/gnome-keyring/
@@ -386,9 +329,14 @@ sed -i '/^#!bash/,+1 d' contrib/completion/git-completion.bash
 
 %install
 rm -rf %{buildroot}
-make %{?_smp_mflags} INSTALLDIRS=vendor install %{!?_without_docs: install-doc}
+make %{?_smp_mflags} INSTALLDIRS=vendor install
+%if ! %{use_prebuilt_docs} && ! 0%{?_without_docs}
+make %{?_smp_mflags} INSTALLDIRS=vendor install-doc
+%else
+cp -a prebuilt_docs/man/* %{buildroot}%{_mandir}
+cp -a prebuilt_docs/html/* Documentation/
+%endif
 
-%if %{emacs_support}
 %if %{emacs_old}
 %global _emacs_sitelispdir %{_datadir}/emacs/site-lisp
 %global _emacs_sitestartdir %{_emacs_sitelispdir}/site-start.d
@@ -402,7 +350,6 @@ for elc in %{buildroot}%{elispdir}/*.elc ; do
 done
 install -Dpm 644 %{SOURCE2} \
     %{buildroot}%{_emacs_sitestartdir}/git-init.el
-%endif
 
 %if %{gnome_keyring}
 install -pm 755 contrib/credential/gnome-keyring/git-credential-gnome-keyring \
@@ -412,7 +359,9 @@ make -C contrib/credential/gnome-keyring/ clean
 %endif
 
 make -C contrib/subtree install
+%if ! %{use_prebuilt_docs}
 make -C contrib/subtree install-doc
+%endif
 
 mkdir -p %{buildroot}%{_sysconfdir}/httpd/conf.d
 install -pm 0644 %{SOURCE4} %{buildroot}%{_sysconfdir}/httpd/conf.d/git.conf
@@ -427,9 +376,8 @@ find %{buildroot} -type f -name perllocal.pod -exec rm -f {} ';'
 # use yet
 rm -rf %{buildroot}%{python_sitelib} %{buildroot}%{gitcoredir}/git-remote-testgit
 
-%if ! %{arch_support}
+# git-archimport is not supported
 find %{buildroot} Documentation -type f -name 'git-archimport*' -exec rm -f {} ';'
-%endif
 
 (find %{buildroot}{%{_bindir},%{_libexecdir}} -type f | grep -vE "archimport|p4|svn|cvs|email|gitk|git-gui|git-citool|git-daemon" | sed -e s@^%{buildroot}@@) > bin-man-doc-files
 (find %{buildroot}{%{_bindir},%{_libexecdir}} -mindepth 1 -type d | grep -vE "archimport|p4|svn|cvs|email|gitk|git-gui|git-citool|git-daemon" | sed -e 's@^%{buildroot}@%dir @') >> bin-man-doc-files
@@ -461,6 +409,11 @@ perl -p \
 mkdir -p %{buildroot}%{_sysconfdir}/bash_completion.d
 install -pm 644 contrib/completion/git-completion.bash %{buildroot}%{_sysconfdir}/bash_completion.d/git
 
+# Install tcsh completion
+mkdir -p %{buildroot}%{_datadir}/git-core/contrib/completion
+install -pm 644 contrib/completion/git-completion.tcsh \
+    %{buildroot}%{_datadir}/git-core/contrib/completion/
+
 # Move contrib/hooks out of %%docdir and make them executable
 mkdir -p %{buildroot}%{_datadir}/git-core/contrib
 mv contrib/hooks %{buildroot}%{_datadir}/git-core/contrib
@@ -475,10 +428,7 @@ install -pm 644 contrib/completion/git-prompt.sh \
     %{buildroot}%{_datadir}/git-core/contrib/completion/
 
 # install git-gui .desktop file
-desktop-file-install \
-%if %{use_desktop_vendor}
-    --vendor fedora \
-%endif
+desktop-file-install --vendor fedora \
     --dir=%{buildroot}%{_datadir}/applications %{SOURCE5}
 
 # find translations
@@ -528,15 +478,6 @@ rm -rf %{buildroot}
 %{!?_without_docs: %{_mandir}/man1/*cvs*.1*}
 %{!?_without_docs: %doc Documentation/*git-cvs*.html }
 
-%if %{arch_support}
-%files arch
-%defattr(-,root,root)
-%doc Documentation/git-archimport.txt
-%{gitcoredir}/git-archimport
-%{!?_without_docs: %{_mandir}/man1/git-archimport.1*}
-%{!?_without_docs: %doc Documentation/git-archimport.html }
-%endif
-
 %files email
 %defattr(-,root,root)
 %doc Documentation/*email*.txt
@@ -572,7 +513,6 @@ rm -rf %{buildroot}
 %defattr(-,root,root)
 %{!?_without_docs: %{_mandir}/man3/*Git*SVN*.3pm*}
 
-%if %{emacs_support}
 %files -n emacs-git
 %defattr(-,root,root)
 %doc contrib/emacs/README
@@ -583,7 +523,6 @@ rm -rf %{buildroot}
 %files -n emacs-git-el
 %defattr(-,root,root)
 %{elispdir}/*.el
-%endif
 
 %files daemon
 %defattr(-,root,root)
@@ -606,6 +545,14 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Tue Feb 26 2013 Todd Zullinger <tmz@pobox.com> - 1.8.1.4-2
+- Update asciidoc requirements, drop unsupported ASCIIDOC7
+- Define GNU_ROFF to force ASCII apostrophes in manpages (so copy/paste works)
+- Install tcsh completion (requires manual setup by users)
+- Clean up dist conditionals, don't pretend to support EL-4 builds
+- Use prebuilt documentation on EL-5, where asciidoc is too old
+- Respect gitexecdir variable in git-subtree install
+
 * Wed Feb 20 2013 Adam Tkac <atkac redhat com> - 1.8.1.4-1
 - update to 1.8.1.4
 
