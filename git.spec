@@ -16,6 +16,7 @@
 %global docbook_suppress_sp 1
 %global enable_ipv6         1
 %global use_prebuilt_docs   1
+%global filter_yaml_any     1
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 %else
 %global gitcoredir          %{_libexecdir}/git-core
@@ -25,6 +26,7 @@
 %global docbook_suppress_sp 0
 %global enable_ipv6         0
 %global use_prebuilt_docs   0
+%global filter_yaml_any     0
 %endif
 
 # Build gnome-keyring git-credential helper on Fedora and RHEL >= 7
@@ -34,9 +36,15 @@
 %global gnome_keyring 0
 %endif
 
+%if (0%{?fedora} && 0%{?fedora} < 19) || (0%{?rhel} && 0%{?rhel} < 7)
+%global with_desktop_vendor_tag 1
+%else
+%global with_desktop_vendor_tag 0
+%endif
+
 Name:           git
-Version:        1.8.1.4
-Release:        2%{?dist}
+Version:        1.8.2.1
+Release:        1%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -54,8 +62,10 @@ Patch0:         git-1.5-gitweb-home-link.patch
 Patch1:         git-cvsimport-Ignore-cvsps-2.2b1-Branches-output.patch
 # https://bugzilla.redhat.com/600411
 Patch3:         git-1.7-el5-emacs-support.patch
-Patch4:         0001-DESTDIR-support-in-contrib-subtree-Makefile.patch
 Patch5:         0001-git-subtree-Use-gitexecdir-instead-of-libexecdir.patch
+# This fixes the build when python is enabled.  Needs discussion upstream to
+# find a proper solution.
+Patch6:         0001-Drop-DESTDIR-from-python-instlibdir.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -78,6 +88,7 @@ BuildRequires:  zlib-devel >= 1.2
 Requires:       less
 Requires:       openssh-clients
 Requires:       perl(Error)
+Requires:       perl(Term::ReadKey)
 Requires:       perl-Git = %{version}-%{release}
 Requires:       rsync
 Requires:       zlib >= 1.2
@@ -260,8 +271,8 @@ Requires:       emacs-git = %{version}-%{release}
 %if %{emacs_old}
 %patch3 -p1
 %endif
-%patch4 -p1
 %patch5 -p1
+%patch6 -p1
 
 %if %{use_prebuilt_docs}
 mkdir -p prebuilt_docs/{html,man}
@@ -301,10 +312,15 @@ echo DOCBOOK_SUPPRESS_SP = 1 >> config.mak
 
 # Filter bogus perl requires
 # packed-refs comes from a comment in contrib/hooks/update-paranoid
+# YAML::Any is optional and not available on el5
 cat << \EOF > %{name}-req
 #!/bin/sh
 %{__perl_requires} $* |\
-sed -e '/perl(packed-refs)/d'
+sed \
+%if %{filter_yaml_any}
+    -e '/perl(YAML::Any)/d' \
+%endif
+    -e '/perl(packed-refs)/d'
 EOF
 
 %global __perl_requires %{_builddir}/%{name}-%{version}/%{name}-req
@@ -428,8 +444,11 @@ install -pm 644 contrib/completion/git-prompt.sh \
     %{buildroot}%{_datadir}/git-core/contrib/completion/
 
 # install git-gui .desktop file
-desktop-file-install --vendor fedora \
-    --dir=%{buildroot}%{_datadir}/applications %{SOURCE5}
+desktop-file-install \
+%if %{with desktop_vendor_tag}
+  --vendor fedora \
+%endif
+  --dir=%{buildroot}%{_datadir}/applications %{SOURCE5}
 
 # find translations
 %find_lang %{name} %{name}.lang
@@ -545,6 +564,22 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Sun Apr 14 2013 Todd Zullinger <tmz@pobox.com> - 1.8.2.1-1
+- Update to 1.8.2.1
+- Exclude optional perl(YAML::Any) dependency on EL-5
+
+* Wed Apr 10 2013 Jon Ciesla <limburgher@gmail.com> - 1.8.2-3
+- Drop desktop vendor tag for >= f19.
+
+* Wed Mar 27 2013 Todd Zullinger <tmz@pobox.com> - 1.8.2-2
+- Require perl(Term::ReadKey) for git add --interactive (#928328)
+- Drop DESTDIR from python instlibdir
+- Fix bogus changelog dates
+
+* Tue Mar 19 2013 Adam Tkac <atkac redhat com> - 1.8.2-1
+- update to 1.8.2
+- 0001-DESTDIR-support-in-contrib-subtree-Makefile.patch has been merged
+
 * Tue Feb 26 2013 Todd Zullinger <tmz@pobox.com> - 1.8.1.4-2
 - Update asciidoc requirements, drop unsupported ASCIIDOC7
 - Define GNU_ROFF to force ASCII apostrophes in manpages (so copy/paste works)
@@ -1089,7 +1124,7 @@ rm -rf %{buildroot}
 * Fri Jun 08 2007 James Bowes <jbowes@redhat.com> 1.5.2.1-1
 - git-1.5.2.1
 
-* Tue May 13 2007 Quy Tonthat <qtonthat@gmail.com>
+* Sun May 13 2007 Quy Tonthat <qtonthat@gmail.com>
 - Added lib files for git-gui
 - Added Documentation/technical (As needed by Git Users Manual)
 
@@ -1111,7 +1146,7 @@ rm -rf %{buildroot}
 * Mon Feb 26 2007 Chris Wright <chrisw@redhat.com> 1.5.0.2-1
 - git-1.5.0.2
 
-* Mon Feb 13 2007 Nicolas Pitre <nico@cam.org>
+* Tue Feb 13 2007 Nicolas Pitre <nico@cam.org>
 - Update core package description (Git isn't as stupid as it used to be)
 
 * Mon Feb 12 2007 Junio C Hamano <junkio@cox.net>
@@ -1179,7 +1214,7 @@ rm -rf %{buildroot}
 * Mon Feb 13 2006 Chris Wright <chrisw@redhat.com> 1.2.0-1
 - git-1.2.0
 
-* Tue Feb 1 2006 Chris Wright <chrisw@redhat.com> 1.1.6-1
+* Wed Feb 1 2006 Chris Wright <chrisw@redhat.com> 1.1.6-1
 - git-1.1.6
 
 * Tue Jan 24 2006 Chris Wright <chrisw@redhat.com> 1.1.4-1
@@ -1244,5 +1279,5 @@ rm -rf %{buildroot}
 * Thu Jul 14 2005 Eric Biederman <ebiederm@xmission.com>
 - Add the man pages, and the --without docs build option
 
-* Wed Jul 7 2005 Chris Wright <chris@osdl.org>
+* Thu Jul 7 2005 Chris Wright <chris@osdl.org>
 - initial git spec file
