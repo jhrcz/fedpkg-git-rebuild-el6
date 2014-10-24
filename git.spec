@@ -44,7 +44,7 @@
 
 Name:           git
 Version:        1.9.3
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -57,7 +57,7 @@ Source5:        git-gui.desktop
 Source6:        gitweb.conf.in
 Source10:       http://git-core.googlecode.com/files/%{name}-manpages-%{version}.tar.gz
 Source11:       http://git-core.googlecode.com/files/%{name}-htmldocs-%{version}.tar.gz
-Source12:       git.service
+Source12:       git@.service
 Source13:       git.socket
 Patch0:         git-1.8-gitweb-home-link.patch
 # https://bugzilla.redhat.com/490602
@@ -511,13 +511,13 @@ rm -rf %{buildroot}
 
 %if %{use_systemd}
 %post daemon
-%systemd_post git.service
+%systemd_post git@.service
 
 %preun daemon
-%systemd_preun git.service
+%systemd_preun git@.service
 
 %postun daemon
-%systemd_postun_with_restart git.service
+%systemd_postun_with_restart git@.service
 %endif
 
 %files -f bin-man-doc-files
@@ -610,7 +610,7 @@ rm -rf %{buildroot}
 %doc Documentation/*daemon*.txt
 %if %{use_systemd}
 %{_unitdir}/git.socket
-%{_unitdir}/git.service
+%{_unitdir}/git@.service
 %else
 %config(noreplace)%{_sysconfdir}/xinetd.d/git
 %endif
@@ -631,6 +631,10 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Sat Oct 25 2014 Pierre-Yves Chibon <pingou@pingoured.fr> - 1.9.3-2 
+- Rename the git.service into git@.service fixing
+  https://bugzilla.redhat.com/980574
+
 * Mon May 19 2014 Jon Ciesla <limburgher@gmail.com> - 1.9.3-1
 - Update to 1.9.3
 
