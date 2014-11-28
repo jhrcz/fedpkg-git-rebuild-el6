@@ -462,8 +462,9 @@ perl -p \
     %{SOURCE3} > %{buildroot}%{_sysconfdir}/xinetd.d/git
 %endif
 
-# Install bzr and hg remote helpers from contrib
-install -pm 755 contrib/remote-helpers/git-remote-{bzr,hg} %{buildroot}%{gitcoredir}
+# Install and hg remote helpers from contrib
+# removed bzr
+install -pm 755 contrib/remote-helpers/git-remote-hg %{buildroot}%{gitcoredir}
 
 # Setup bash completion
 mkdir -p %{buildroot}%{_sysconfdir}/bash_completion.d
@@ -528,9 +529,10 @@ rm -rf %{buildroot}
 %{!?_without_docs: %doc Documentation/howto Documentation/technical}
 %{_sysconfdir}/bash_completion.d
 
-%files bzr
-%defattr(-,root,root)
-%{gitcoredir}/git-remote-bzr
+#git-bzr removed from this package and replaced by git-remote-bzr
+#%files bzr
+#%defattr(-,root,root)
+#%{gitcoredir}/git-remote-bzr
 
 %files hg
 %defattr(-,root,root)
@@ -631,6 +633,10 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Thu Nov 27 2014  Petr Stodulka <pstodulk@redhat.com> - 2.1.0-3
+- removed git-bzr (not functional already)  -> replaced by separated
+  package git-remote-bzr
+
 * Sat Oct 25 2014 Pierre-Yves Chibon <pingou@pingoured.fr> - 2.1.0-2 
 - Rename the git.service into git@.service fixing
   https://bugzilla.redhat.com/980574
