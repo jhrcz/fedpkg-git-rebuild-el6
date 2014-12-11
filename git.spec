@@ -44,7 +44,7 @@
 
 Name:           git
 Version:        2.1.0
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -173,18 +173,6 @@ Requires:       git = %{version}-%{release}
 
 %description -n gitweb
 Simple web interface to track changes in git repositories
-
-%package hg
-Summary:        Git tools for working with mercurial repositories
-Group:          Development/Tools
-%if %{noarch_sub}
-BuildArch:      noarch
-%endif
-Requires:       git = %{version}-%{release}
-Requires:       mercurial >= 1.8
-
-%description hg
-%{summary}.
 
 %package p4
 Summary:        Git tools for working with Perforce depots
@@ -462,10 +450,6 @@ perl -p \
     %{SOURCE3} > %{buildroot}%{_sysconfdir}/xinetd.d/git
 %endif
 
-# Install and hg remote helpers from contrib
-# removed bzr
-install -pm 755 contrib/remote-helpers/git-remote-hg %{buildroot}%{gitcoredir}
-
 # Setup bash completion
 mkdir -p %{buildroot}%{_sysconfdir}/bash_completion.d
 install -pm 644 contrib/completion/git-completion.bash %{buildroot}%{_sysconfdir}/bash_completion.d/git
@@ -533,10 +517,6 @@ rm -rf %{buildroot}
 #%files bzr
 #%defattr(-,root,root)
 #%{gitcoredir}/git-remote-bzr
-
-%files hg
-%defattr(-,root,root)
-%{gitcoredir}/git-remote-hg
 
 %files p4
 %defattr(-,root,root)
@@ -633,8 +613,12 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Thu Dec 11 2014  Petr Stodulka <pstodulk@redhat.com> - 2.1.0-4
+- removed subpackage git-hg (not functional already)  -> replaced by separated
+  package git-remote-hg
+
 * Thu Nov 27 2014  Petr Stodulka <pstodulk@redhat.com> - 2.1.0-3
-- removed git-bzr (not functional already)  -> replaced by separated
+- removed subpackage git-bzr (not functional already)  -> replaced by separated
   package git-remote-bzr
 
 * Sat Oct 25 2014 Pierre-Yves Chibon <pingou@pingoured.fr> - 2.1.0-2 
