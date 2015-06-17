@@ -44,7 +44,7 @@
 
 Name:           git
 Version:        2.4.3
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -99,7 +99,7 @@ Requires:       rsync
 Requires:       zlib >= 1.2
 
 Provides:       git-core = %{version}-%{release}
-Obsoletes:      git-core <= 2.4.3-1
+Obsoletes:      git-core <= 2.4.3
 
 # Obsolete git-arch
 Obsoletes:      git-arch < %{version}-%{release}
@@ -608,6 +608,9 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Mon Jun 15 2015 Petr Stodulka <pstodulk@redhat.com> - 2.4.3-3
+- fix git-core obsoletes
+
 * Mon Jun 15 2015 Petr Stodulka <pstodulk@redhat.com> - 2.4.3-2
 - remove subpackage git-core which was accidentally brought
   to f22 branch - may fast-forward - which is planned
