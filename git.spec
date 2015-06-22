@@ -44,7 +44,7 @@
 
 Name:           git
 Version:        2.4.3
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -64,6 +64,7 @@ Patch0:         git-1.8-gitweb-home-link.patch
 Patch1:         git-cvsimport-Ignore-cvsps-2.2b1-Branches-output.patch
 # https://bugzilla.redhat.com/600411
 Patch3:         git-1.7-el5-emacs-support.patch
+Patch4:         git-infinite-loop.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -181,6 +182,7 @@ Requires:       git = %{version}-%{release}
 Summary:        Git tools for importing Subversion repositories
 Group:          Development/Tools
 Requires:       git = %{version}-%{release}, subversion
+Requires:       perl-Digest-MD5
 %if ! %{defined perl_bootstrap}
 Requires:       perl(Term::ReadKey)
 %endif
@@ -608,6 +610,12 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Mon Jun 22 2015  Petr Stodulka <pstodulk@gmail.com> - 2.4.3-4
+- git-svn - added requires for perl-Digest-MD5 (#1218176)
+- solve troubles with infinite loop due to broken symlink (probably
+  shouldn't be problem here, but it's reproducible manually)
+  (#1204193)
+
 * Mon Jun 15 2015 Petr Stodulka <pstodulk@redhat.com> - 2.4.3-3
 - fix git-core obsoletes
 
