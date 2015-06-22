@@ -292,6 +292,7 @@ Requires:       emacs-git = %{version}-%{release}
 %if %{emacs_old}
 %patch3 -p1
 %endif
+%patch4 -p1
 
 %if %{use_prebuilt_docs}
 mkdir -p prebuilt_docs/{html,man}
@@ -610,6 +611,9 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Mon Jun 22 2015  Petr Stodulka <pstodulk@gmail.com> - 2.4.3-5
+- apply git-infinite-loop.patch
+
 * Mon Jun 22 2015  Petr Stodulka <pstodulk@gmail.com> - 2.4.3-4
 - git-svn - added requires for perl-Digest-MD5 (#1218176)
 - solve troubles with infinite loop due to broken symlink (probably
