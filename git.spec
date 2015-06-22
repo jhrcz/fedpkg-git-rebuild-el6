@@ -44,7 +44,7 @@
 
 Name:           git
 Version:        2.1.0
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -64,6 +64,7 @@ Patch0:         git-1.8-gitweb-home-link.patch
 Patch1:         git-cvsimport-Ignore-cvsps-2.2b1-Branches-output.patch
 # https://bugzilla.redhat.com/600411
 Patch3:         git-1.7-el5-emacs-support.patch
+Patch4:         git-infinite-loop.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -295,6 +296,7 @@ Requires:       emacs-git = %{version}-%{release}
 %if %{emacs_old}
 %patch3 -p1
 %endif
+%patch4 -p1
 
 %if %{use_prebuilt_docs}
 mkdir -p prebuilt_docs/{html,man}
@@ -613,6 +615,14 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Mon Jun 22 2015  Petr Stodulka <pstodulk@gmail.com> - 2.1.0-5
+- git-svn - added requires for perl-Digest-MD5 (#1218176) - it doesn't
+  seem that's really problem on F21 - found dependency by rpm from git-svn
+  package when I try remove it, but it's not bad have it inside spec file
+- solve troubles with infinite loop due to broken symlink (probably
+  shouldn't be problem here, but it's reproducible manually)
+  (#1204193)
+
 * Thu Dec 11 2014  Petr Stodulka <pstodulk@redhat.com> - 2.1.0-4
 - removed subpackage git-hg (not functional already)  -> replaced by separated
   package git-remote-hg
