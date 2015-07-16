@@ -44,7 +44,7 @@
 
 Name:           git
 Version:        2.4.3
-Release:        4%{?dist}
+Release:        6%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
