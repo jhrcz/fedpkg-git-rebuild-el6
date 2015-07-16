@@ -1,0 +1,74 @@
+commit 19376104a8251a7e6c56579cdcd2eb0a106d1fd6
+Author: Jeff King <peff@peff.net>
+Date:   Mon Jun 15 14:27:22 2015 -0400
+
+    Revert "stash: require a clean index to apply"
+    
+    This reverts commit ed178ef13a26136d86ff4e33bb7b1afb5033f908.
+    
+    That commit was an attempt to improve the safety of applying
+    a stash, because the application process may create
+    conflicted index entries, after which it is hard to restore
+    the original index state.
+    
+    Unfortunately, this hurts some common workflows around "git
+    stash -k", like:
+    
+        git add -p       ;# (1) stage set of proposed changes
+        git stash -k     ;# (2) get rid of everything else
+        make test        ;# (3) make sure proposal is reasonable
+        git stash apply  ;# (4) restore original working tree
+    
+    If you "git commit" between steps (3) and (4), then this
+    just works. However, if these steps are part of a pre-commit
+    hook, you don't have that opportunity (you have to restore
+    the original state regardless of whether the tests passed or
+    failed).
+    
+    It's possible that we could provide better tools for this
+    sort of workflow. In particular, even before ed178ef, it
+    could fail with a conflict if there were conflicting hunks
+    in the working tree and index (since the "stash -k" puts the
+    index version into the working tree, and we then attempt to
+    apply the differences between HEAD and the old working tree
+    on top of that). But the fact remains that people have been
+    using it happily for a while, and the safety provided by
+    ed178ef is simply not that great. Let's revert it for now.
+    In the long run, people can work on improving stash for this
+    sort of workflow, but the safety tradeoff is not worth it in
+    the meantime.
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+diff --git a/git-stash.sh b/git-stash.sh
+index cc28368..d4cf818 100755
+--- a/git-stash.sh
++++ b/git-stash.sh
+@@ -442,8 +442,6 @@ apply_stash () {
+ 	assert_stash_like "$@"
+ 
+ 	git update-index -q --refresh || die "$(gettext "unable to refresh index")"
+-	git diff-index --cached --quiet --ignore-submodules HEAD -- ||
+-		die "$(gettext "Cannot apply stash: Your index contains uncommitted changes.")"
+ 
+ 	# current index state
+ 	c_tree=$(git write-tree) ||
+diff --git a/t/t3903-stash.sh b/t/t3903-stash.sh
+index 0746eee..f179c93 100755
+--- a/t/t3903-stash.sh
++++ b/t/t3903-stash.sh
+@@ -45,13 +45,6 @@ test_expect_success 'applying bogus stash does nothing' '
+ 	test_cmp expect file
+ '
+ 
+-test_expect_success 'apply requires a clean index' '
+-	test_when_finished "git reset --hard" &&
+-	echo changed >other-file &&
+-	git add other-file &&
+-	test_must_fail git stash apply
+-'
+-
+ test_expect_success 'apply does not need clean working directory' '
+ 	echo 4 >other-file &&
+ 	git stash apply &&

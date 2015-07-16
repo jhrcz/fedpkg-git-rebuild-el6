@@ -65,6 +65,7 @@ Patch1:         git-cvsimport-Ignore-cvsps-2.2b1-Branches-output.patch
 # https://bugzilla.redhat.com/600411
 Patch3:         git-1.7-el5-emacs-support.patch
 Patch4:         git-infinite-loop.patch
+Patch5:         git-2.4.3-stash-revert.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -293,6 +294,7 @@ Requires:       emacs-git = %{version}-%{release}
 %patch3 -p1
 %endif
 %patch4 -p1
+%patch5 -p1
 
 %if %{use_prebuilt_docs}
 mkdir -p prebuilt_docs/{html,man}
@@ -611,6 +613,10 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Mon Jun 22 2015  Petr Stodulka <pstodulk@gmail.com> - 2.4.3-6
+- fix #1242034 - "git stash save -k" followed by "git stash apply" fails
+  used upstream solution from git-2.4.6 (revert relevant commit)
+
 * Mon Jun 22 2015  Petr Stodulka <pstodulk@gmail.com> - 2.4.3-5
 - apply git-infinite-loop.patch
 
