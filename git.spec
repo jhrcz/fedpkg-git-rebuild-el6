@@ -44,7 +44,7 @@
 
 Name:           git
 Version:        2.4.3
-Release:        6%{?dist}
+Release:        7%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -66,6 +66,13 @@ Patch1:         git-cvsimport-Ignore-cvsps-2.2b1-Branches-output.patch
 Patch3:         git-1.7-el5-emacs-support.patch
 Patch4:         git-infinite-loop.patch
 Patch5:         git-2.4.3-stash-revert.patch
+
+# set of patches for security bug (solved since 2.6.1)
+Patch6:         0001-transport-add-a-protocol-whitelist-environment-varia.patch
+Patch7:         0002-submodule-allow-only-certain-protocols-for-submodule.patch
+Patch8:         0003-transport-refactor-protocol-whitelist-code.patch
+Patch9:         0004-http-limit-redirection-to-protocol-whitelist.patch
+Patch10:        0005-http-limit-redirection-depth.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -295,6 +302,11 @@ Requires:       emacs-git = %{version}-%{release}
 %endif
 %patch4 -p1
 %patch5 -p1
+%patch6 -p1
+%patch7 -p1
+%patch8 -p1
+%patch9 -p1
+%patch10 -p1
 
 %if %{use_prebuilt_docs}
 mkdir -p prebuilt_docs/{html,man}
@@ -613,14 +625,18 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
-* Mon Jun 22 2015  Petr Stodulka <pstodulk@gmail.com> - 2.4.3-6
+* Wed Oct 28 2015 Petr Stodulka <pstodulk@redhat.com> - 2.4.3-7
+- fix arbitrary code execution via crafted URLs
+  Resolves: #1269797
+
+* Mon Jun 22 2015  Petr Stodulka <pstodulk@redhat.com> - 2.4.3-6
 - fix #1242034 - "git stash save -k" followed by "git stash apply" fails
   used upstream solution from git-2.4.6 (revert relevant commit)
 
-* Mon Jun 22 2015  Petr Stodulka <pstodulk@gmail.com> - 2.4.3-5
+* Mon Jun 22 2015  Petr Stodulka <pstodulk@redhat.com> - 2.4.3-5
 - apply git-infinite-loop.patch
 
-* Mon Jun 22 2015  Petr Stodulka <pstodulk@gmail.com> - 2.4.3-4
+* Mon Jun 22 2015  Petr Stodulka <pstodulk@redhat.com> - 2.4.3-4
 - git-svn - added requires for perl-Digest-MD5 (#1218176)
 - solve troubles with infinite loop due to broken symlink (probably
   shouldn't be problem here, but it's reproducible manually)
