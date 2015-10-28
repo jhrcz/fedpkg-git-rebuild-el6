@@ -69,6 +69,13 @@ Patch3:         git-1.7-el5-emacs-support.patch
 # could be removed when update/branch of Michael will be merged in upstream
 Patch4:         git-infinite-loop.patch
 
+# set of patches for security bug (solved since 2.6.1)
+Patch5:         0001-transport-add-a-protocol-whitelist-environment-varia.patch
+Patch6:         0002-submodule-allow-only-certain-protocols-for-submodule.patch
+Patch7:         0003-transport-refactor-protocol-whitelist-code.patch
+Patch8:         0004-http-limit-redirection-to-protocol-whitelist.patch
+Patch9:         0005-http-limit-redirection-depth.patch
+
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %if ! %{use_prebuilt_docs} && ! 0%{?_without_docs}
@@ -334,6 +341,11 @@ Requires:       emacs-git = %{version}-%{release}
 %patch3 -p1
 %endif
 %patch4 -p1
+%patch5 -p1
+%patch6 -p1
+%patch7 -p1
+%patch8 -p1
+%patch9 -p1
 
 %if %{use_prebuilt_docs}
 mkdir -p prebuilt_docs/{html,man}
@@ -679,6 +691,10 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Wed Oct 28 2015 Petr Stodulka <pstodulk@redhat.com> - 2.5.0-2
+- fix arbitrary code execution via crafted URLs
+  Resolves: #1269797
+
 * Tue Jul 28 2015 Jon Ciesla <limburgher@gmail.com> - 2.5.0-1
 - Update to 2.5.0.
 
