@@ -44,7 +44,7 @@
 
 Name:           git
 Version:        1.8.2.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -66,6 +66,12 @@ Patch5:         0001-git-subtree-Use-gitexecdir-instead-of-libexecdir.patch
 # This fixes the build when python is enabled.  Needs discussion upstream to
 # find a proper solution.
 Patch6:         0001-Drop-DESTDIR-from-python-instlibdir.patch
+Patch7:         0001-submodule-allow-only-certain-protocols-for-submodule.patch
+Patch8:         0002-transport-add-a-protocol-whitelist-environment-varia.patch
+Patch9:         0003-transport-refactor-protocol-whitelist-code.patch
+Patch10:         0004-http-limit-redirection-to-protocol-whitelist.patch
+Patch11:         0005-http-limit-redirection-depth.patch
+
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -273,6 +279,11 @@ Requires:       emacs-git = %{version}-%{release}
 %endif
 %patch5 -p1
 %patch6 -p1
+%patch7 -p1
+%patch8 -p1
+%patch9 -p1
+%patch10 -p1
+%patch11 -p1
 
 %if %{use_prebuilt_docs}
 mkdir -p prebuilt_docs/{html,man}
@@ -564,6 +575,10 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Sun Nov 01 2015 Petr Stodulka <pstodulk@redhat.com> - 1.8.2.1-2
+- fix arbitrary code execution via crafted URLs
+  Resolves: #1269798
+
 * Sun Apr 14 2013 Todd Zullinger <tmz@pobox.com> - 1.8.2.1-1
 - Update to 1.8.2.1
 - Exclude optional perl(YAML::Any) dependency on EL-5
