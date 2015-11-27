@@ -44,7 +44,7 @@
 
 Name:           git
 Version:        2.5.0
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -575,6 +575,8 @@ rm -rf %{buildroot}
 %{elispdir}
 %{_emacs_sitestartdir}/git-init.el
 %endif
+%{_datadir}/git-core/contrib/hooks/update-paranoid
+%{_datadir}/git-core/contrib/hooks/setgitperms.perl
 #%{_datadir}/git-core/*
 #%doc Documentation/*.txt
 #%{!?_without_docs: %doc Documentation/*.html}
@@ -583,8 +585,11 @@ rm -rf %{buildroot}
 %files core -f bin-files-core
 %defattr(-,root,root)
 %doc COPYING
-%{_datadir}/git-core/
+# exlude is best way here because of troubels with symlinks inside git-core/
+%exclude %{_datadir}/git-core/contrib/hooks/update-paranoid
+%exclude %{_datadir}/git-core/contrib/hooks/setgitperms.perl
 %{_datadir}/bash-completion/
+%{_datadir}/git-core/
 
 %files core-doc -f man-doc-files-core
 %defattr(-,root,root)
@@ -691,6 +696,10 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Fri Nov 27 2015 Petr Stodulka <pstodulk@redhat.com> - 2.5.0-3
+- found 2 perl scripts in git-core, move them to git package
+  (#1284688)
+
 * Wed Oct 28 2015 Petr Stodulka <pstodulk@redhat.com> - 2.5.0-2
 - fix arbitrary code execution via crafted URLs
   Resolves: #1269797
