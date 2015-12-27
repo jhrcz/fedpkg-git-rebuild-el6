@@ -44,7 +44,7 @@
 
 Name:           git
 Version:        2.5.0
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 Group:          Development/Tools
@@ -75,6 +75,9 @@ Patch6:         0002-submodule-allow-only-certain-protocols-for-submodule.patch
 Patch7:         0003-transport-refactor-protocol-whitelist-code.patch
 Patch8:         0004-http-limit-redirection-to-protocol-whitelist.patch
 Patch9:         0005-http-limit-redirection-depth.patch
+
+# solved since 2.7.0
+Patch10:        git-sendemail-big.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -346,6 +349,7 @@ Requires:       emacs-git = %{version}-%{release}
 %patch7 -p1
 %patch8 -p1
 %patch9 -p1
+%patch10 -p1
 
 %if %{use_prebuilt_docs}
 mkdir -p prebuilt_docs/{html,man}
@@ -696,6 +700,10 @@ rm -rf %{buildroot}
 # No files for you!
 
 %changelog
+* Sun Dec 27 2015 Petr Stodulka <pstodulk@redhat.com> - 2.5.0-4
+- fix send emails with patches bigger then 16kB
+  Resolves: #1275883
+
 * Fri Nov 27 2015 Petr Stodulka <pstodulk@redhat.com> - 2.5.0-3
 - found 2 perl scripts in git-core, move them to git package
   (#1284688)
