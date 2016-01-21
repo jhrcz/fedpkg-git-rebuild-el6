@@ -496,7 +496,7 @@ perl -p \
 %endif
 
 # Setup bash completion
-bashcompdir=$(pkg-config --variable=completionsdir bash-completion)
+bashcompdir="/usr/share/bash-completion/"
 install -Dpm 644 contrib/completion/git-completion.bash %{buildroot}$bashcompdir/git
 ln -s git %{buildroot}$bashcompdir/gitk
 
