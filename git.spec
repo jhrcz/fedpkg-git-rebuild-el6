@@ -86,7 +86,7 @@ BuildRequires:  libgnome-keyring-devel
 BuildRequires:  pcre-devel
 BuildRequires:  openssl-devel
 BuildRequires:  zlib-devel >= 1.2
-BuildRequires:  pkgconfig(bash-completion)
+BuildRequires:  bash-completion
 %if %{use_systemd}
 # For macros
 BuildRequires:  systemd
